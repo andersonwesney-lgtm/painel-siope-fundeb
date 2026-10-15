@@ -30,6 +30,16 @@ jobs:
     timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
+      # Arquivos enviados pelo navegador podem chegar soltos na raiz do repositório.
+      # Este passo os coloca nas pastas certas antes de rodar (não altera o repositório).
+      - name: Organizar arquivos nas pastas
+        run: |
+          mover() { d="$1"; shift; mkdir -p "$d"; for f in "$@"; do if [ -f "$f" ]; then mv "$f" "$d/"; fi; done; }
+          mover config obrigacoes.yaml painel.yaml prazos.yaml
+          mover siope_brasil __init__.py __main__.py cli.py coleta.py config.py pdf_lote.py processa.py territorio.py
+          mover tests sintetico.py test_brasil.py
+          mover web app.js estilo.css index.html
+          find . -path ./.git -prune -o -type f -print | sort
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
