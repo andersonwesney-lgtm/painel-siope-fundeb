@@ -7,7 +7,7 @@ painel:
   titulo: Painel SIOPE e Fundeb
   subtitulo: Acompanhamento nacional das obrigações da Lei 14.113/2020
   # Endereço público (preencha depois de publicar; aparece nos PDFs)
-  url_publica: ""
+  url_publica: "https://andersonwesney-lgtm.github.io/painel-siope-fundeb/"
   responsavel: ""
 
 # Exercícios cobertos.

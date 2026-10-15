@@ -20,6 +20,12 @@ regra_bimestral:
     da dívida mobiliária).
   conferir: true
 
+# Envio após o prazo calculado deixa o ente em "Atenção"?
+#   false: o atraso aparece na tabela de prazos e no detalhe do ente, sem mudar
+#          a situação (a consequência do art. 38 é para quem NÃO envia).
+#   true:  todo envio após o prazo gera alerta de atenção.
+envio_apos_prazo_gera_atencao: false
+
 # Dados do exercício (6º bimestre) exigidos para habilitação à
 # complementação-VAAT: até 31 de agosto do exercício posterior.
 regra_habilitacao_vaat:

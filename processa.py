@@ -320,6 +320,8 @@ def fmt_limite(v, unidade) -> str:
 
 def processar(cfg: Config, saida: Path, hoje: date, log=print, demo: str | None = None) -> dict:
     """Gera site/dados/: catalogo.json, entes.json, <ano>/b<b>.json, <ano>/b<b>/<UF>.json, manifest.json."""
+    # Envio após o prazo calculado: só informativo, salvo se prazos.yaml pedir o contrário.
+    atraso_alerta = bool(cfg.prazos.get("envio_apos_prazo_gera_atencao", False))
     dados = saida / "dados"
     anos = cfg.exercicios(hoje)
     periodos = {}
@@ -382,7 +384,7 @@ def processar(cfg: Config, saida: Path, hoje: date, log=print, demo: str | None 
                     st = tx[i][bb - 1][1]
                     if st == "atrasado":
                         alertas.append(f"c:t:{bb}")
-                    elif st == "fora_prazo":
+                    elif st == "fora_prazo" and atraso_alerta:
                         alertas.append(f"a:t:{bb}")
                 nc = sum(1 for a in alertas if a.startswith("c:"))
                 na = len(alertas) - nc
