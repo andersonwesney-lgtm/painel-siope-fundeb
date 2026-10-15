@@ -1,0 +1,219 @@
+# =====================================================================
+# Catálogo: indicador do SIOPE -> obrigação legal -> dispositivo -> regra.
+#
+# - "cod_exib" é a numeração que o SIOPE usa no Relatório de Indicadores e
+#   na API (1.1, 1.2, ...). É igual para estados e municípios.
+# - "limite" só é preenchido quando o percentual está escrito na norma citada.
+#   Nenhum valor aqui foi estimado. Mesmo assim, todos estão marcados
+#   "conferir: true": antes de usar o painel em prestação de contas, confira
+#   o texto vigente em "fonte_url". Ao conferir, troque para false e
+#   preencha "conferido_em" (AAAA-MM-DD) e "conferido_por".
+# - "avaliacao: anual" = a obrigação só se fecha no 6º bimestre. Nos
+#   bimestres anteriores o painel mostra a situação como parcial.
+# - "a_partir_de": primeiro exercício em que a obrigação existe.
+# - Complementação-VAAT (1.5 e 1.6): o SIOPE não informa quem é beneficiário.
+#   Se existir dados/importados/vaat_<ano>.csv (coluna "ente" com o código do
+#   SIOPE), ele define os beneficiários. Sem o arquivo, o ente é tratado como
+#   beneficiário quando declara algum valor de VAAT (1.5, 1.6 ou IEI 1.7), e o
+#   painel marca essa conclusão como inferida.
+# =====================================================================
+
+fontes:
+  lei_14113: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2020/lei/l14113.htm
+  cf: https://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm
+
+obrigacoes:
+  - id: mde_25
+    cod_exib: "1.1"
+    titulo: Aplicação mínima em manutenção e desenvolvimento do ensino (MDE)
+    obrigacao: Aplicar na MDE ao menos 25% da receita de impostos, incluídas as transferências.
+    dispositivo: Constituição Federal, art. 212, caput
+    fonte: cf
+    regra: minimo
+    limite: 25
+    unidade: "%"
+    avaliacao: anual
+    aplica_a: [municipal, estadual]
+    conferir: true
+    nota: >-
+      Obrigação constitucional, não da Lei 14.113. Entra no painel porque o
+      SIOPE a apura junto com o Fundeb e ela é condição da prestação de contas.
+
+  - id: remuneracao_70
+    cod_exib: "1.2"
+    titulo: Remuneração dos profissionais da educação básica
+    obrigacao: >-
+      Destinar ao pagamento da remuneração dos profissionais da educação básica
+      em efetivo exercício proporção não inferior a 70% dos recursos anuais
+      totais dos Fundos, excluída a complementação-VAAR.
+    dispositivo: Lei 14.113/2020, art. 26, caput (e § 1º, definições)
+    fonte: lei_14113
+    regra: minimo
+    limite: 70
+    unidade: "%"
+    avaliacao: anual
+    aplica_a: [municipal, estadual]
+    conferir: true
+
+  - id: outras_mde_fundeb
+    cod_exib: "1.3"
+    titulo: Fundeb aplicado em outras despesas de MDE
+    obrigacao: Parcela do Fundeb aplicada em MDE fora da remuneração (complemento do art. 26).
+    dispositivo: Lei 14.113/2020, art. 26 (por complemento) e art. 25, caput
+    fonte: lei_14113
+    regra: informativo
+    unidade: "%"
+    avaliacao: anual
+    aplica_a: [municipal, estadual]
+    conferir: true
+    nota: >-
+      A Lei 14.113 não fixa um teto próprio para este indicador. O teto que
+      aparece no nome do indicador no SIOPE decorre do mínimo do art. 26.
+
+  - id: nao_aplicado_10
+    cod_exib: "1.4"
+    titulo: Recursos do Fundeb não aplicados no exercício
+    obrigacao: >-
+      Utilizar os recursos no exercício em que forem creditados; até 10% podem
+      ser utilizados no primeiro quadrimestre do exercício seguinte, mediante
+      abertura de crédito adicional.
+    dispositivo: Lei 14.113/2020, art. 25, caput e § 3º
+    fonte: lei_14113
+    regra: maximo
+    limite: 10
+    unidade: "%"
+    avaliacao: anual
+    # Durante o ano o saldo não aplicado é naturalmente alto; só faz sentido no 6º bimestre.
+    avaliar_parcial: false
+    aplica_a: [municipal, estadual]
+    conferir: true
+
+  - id: vaat_capital_15
+    cod_exib: "1.5"
+    titulo: Complementação-VAAT em despesas de capital
+    obrigacao: >-
+      Aplicar em despesas de capital percentual mínimo de 15% dos recursos da
+      complementação-VAAT recebidos pela rede.
+    dispositivo: Lei 14.113/2020, art. 27
+    fonte: lei_14113
+    regra: minimo
+    limite: 15
+    unidade: "%"
+    avaliacao: anual
+    aplica_a: [municipal, estadual]
+    condicao: recebe_complementacao_vaat
+    conferir: true
+
+  - id: vaat_infantil
+    cod_exib: "1.6"
+    titulo: Complementação-VAAT na educação infantil
+    obrigacao: >-
+      Destinar à educação infantil a parcela da complementação-VAAT definida
+      pelo Indicador de Educação Infantil (IEI) do ente. No conjunto do país,
+      a proporção é de 50% dos recursos globais da complementação-VAAT.
+    dispositivo: Lei 14.113/2020, art. 28 (conferir também a regulamentação do IEI)
+    fonte: lei_14113
+    regra: comparar_minimo
+    referencia_cod_exib: "1.7"
+    unidade: "%"
+    avaliacao: anual
+    aplica_a: [municipal, estadual]
+    condicao: recebe_complementacao_vaat
+    conferir: true
+    nota: >-
+      O painel compara o percentual aplicado (1.6) com o IEI do próprio ente
+      (1.7), como o SIOPE apresenta. Confirme o critério na regulamentação
+      vigente antes de concluir pelo descumprimento.
+
+  - id: destinacao_estado_20
+    cod_exib: "1.8"
+    titulo: Destinação de impostos e transferências ao Fundeb (estados e DF)
+    obrigacao: Destinação ao Fundo de 20% das receitas indicadas na Constituição.
+    dispositivo: Constituição Federal, art. 212-A, inciso II
+    fonte: cf
+    regra: minimo
+    limite: 20
+    unidade: "%"
+    avaliacao: anual
+    aplica_a: [estadual]
+    conferir: true
+
+  - id: tempo_integral_4
+    cod_exib: "1.9"
+    titulo: Fundeb aplicado no fomento à educação em tempo integral
+    obrigacao: >-
+      Aplicação mínima de 4% dos recursos do Fundeb no fomento à criação de
+      matrículas em tempo integral, a partir do exercício de 2026.
+    dispositivo: Constituição Federal, art. 212-A, inciso XV (incluído pela EC 135/2024)
+    fonte: cf
+    regra: minimo
+    limite: 4
+    unidade: "%"
+    avaliacao: anual
+    a_partir_de: 2026
+    aplica_a: [municipal, estadual]
+    conferir: true
+    nota: >-
+      Indicador novo no SIOPE em 2026. Confira na Constituição e na
+      regulamentação da Comissão Intergovernamental (CIF) a base de cálculo e
+      as hipóteses de dispensa antes de concluir pelo descumprimento.
+
+  - id: mde_valor
+    cod_exib: "8.2"
+    titulo: Valor aplicado em MDE frente ao valor exigido
+    obrigacao: Conferência em reais do mínimo constitucional (8.2 aplicado contra 8.1 exigido).
+    dispositivo: Constituição Federal, art. 212, caput
+    fonte: cf
+    regra: comparar_minimo
+    referencia_cod_exib: "8.1"
+    unidade: R$
+    avaliacao: anual
+    aplica_a: [municipal, estadual]
+    conferir: true
+
+# Indicadores sem regra legal própria, exibidos como acompanhamento.
+# Os grupos seguem a numeração do SIOPE.
+grupos_acompanhados:
+  "1": Obrigações legais (VAAT, IEI)
+  "2": Distribuição das despesas
+  "3": Dispêndio com pessoal
+  "4": Investimento por aluno
+  "6": Composição da receita
+  "7": Resultado e saldos do Fundeb
+  "8": Valores de MDE
+
+# Rótulos curtos usados nas colunas da visão comparativa.
+rotulos_curtos:
+  mde_25: MDE 25%
+  remuneracao_70: Remun. 70%
+  outras_mde_fundeb: Outras MDE
+  nao_aplicado_10: Não aplic. 10%
+  vaat_capital_15: VAAT capital
+  vaat_infantil: VAAT infantil
+  destinacao_estado_20: Destin. 20%
+  tempo_integral_4: Tempo integral 4%
+  mde_valor: MDE (R$)
+
+# Obrigações sem indicador no SIOPE. Aparecem como lista de verificação
+# documental no painel e no PDF (o sistema não as avalia sozinho).
+obrigacoes_documentais:
+  - titulo: Registro bimestral das informações no SIOPE
+    dispositivo: Lei 14.113/2020, art. 38, caput e § 1º
+    descricao: >-
+      Ver quadro de transmissões. A falta de registro no prazo do § 1º
+      ocasiona a suspensão das transferências voluntárias e da contratação de
+      operações de crédito.
+  - titulo: Contas únicas e específicas do Fundeb
+    dispositivo: Lei 14.113/2020, art. 21
+    descricao: Recursos mantidos em conta única e específica, vedada a transferência para outras contas.
+  - titulo: CACS-Fundeb constituído e em funcionamento
+    dispositivo: Lei 14.113/2020, arts. 33 e 34
+    descricao: Composição, mandatos e reuniões conforme os arts. 33 e 34.
+  - titulo: Parecer do CACS-Fundeb sobre a prestação de contas
+    dispositivo: Lei 14.113/2020, art. 31, parágrafo único, e art. 33, § 2º, I
+    descricao: >-
+      Parecer apresentado ao Poder Executivo até 30 dias antes do vencimento
+      do prazo de prestação de contas fixado pelo Tribunal de Contas.
+  - titulo: Prestação de contas ao Tribunal de Contas
+    dispositivo: Lei 14.113/2020, art. 31, caput
+    descricao: Conforme os procedimentos adotados pelo Tribunal de Contas competente.

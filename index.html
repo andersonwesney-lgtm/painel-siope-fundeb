@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Painel SIOPE e Fundeb</title>
+<meta name="description" content="Acompanhamento nacional do SIOPE e das obrigações da Lei 14.113/2020 (Fundeb): municípios, estados e Distrito Federal.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow" id="subtitulo">SIOPE e Lei 14.113/2020</div>
+    <h1 id="titulo">Painel SIOPE e Fundeb</h1>
+    <div class="meta" id="meta">Carregando dados…</div>
+    <div class="aviso-demo" id="aviso-demo" hidden></div>
+  </header>
+
+  <form class="filtros" id="filtros" aria-label="Filtros">
+    <label>Exercício<select id="f-ano"></select></label>
+    <label>Bimestre<select id="f-bim"></select></label>
+    <label>Região<select id="f-regiao"><option value="">Todas</option></select></label>
+    <label>UF<select id="f-uf"><option value="">Todas</option></select></label>
+    <label>Esfera<select id="f-esfera"><option value="">Todas</option><option value="municipal">Municipal</option><option value="estadual">Estadual e distrital</option></select></label>
+    <label class="largo">Município ou estado<input id="f-ente" list="l-entes" placeholder="Digite o nome" autocomplete="off"><datalist id="l-entes"></datalist></label>
+    <label>Situação<select id="f-sit"><option value="">Todas</option><option value="irregular">Irregular</option><option value="atencao">Atenção</option><option value="regular">Regular</option><option value="sem_info">Sem dados</option></select></label>
+    <label>Obrigação com problema<select id="f-obr"><option value="">Qualquer</option></select></label>
+    <label>Transmissão<select id="f-tx"><option value="">Todas</option><option value="vencido">Algum bimestre vencido sem envio</option><option value="no_prazo">Bimestre no prazo</option><option value="fora_prazo">Bimestre após o prazo</option><option value="atrasado">Bimestre não transmitido (vencido)</option><option value="aguardando">Bimestre dentro do prazo</option></select></label>
+    <label>População<select id="f-pop"><option value="">Todas</option></select></label>
+    <label>Complementação-VAAT<select id="f-vaat"><option value="">Todos</option><option value="sim">Beneficiário</option><option value="nao">Não beneficiário</option></select></label>
+    <div class="acoes">
+      <button type="button" id="b-limpar" class="sec">Limpar filtros</button>
+      <button type="button" id="b-pdf">Gerar PDF deste recorte</button>
+    </div>
+  </form>
+
+  <div class="aviso" id="conferir" role="note"></div>
+
+  <div class="resumo" id="resumo" aria-live="polite"></div>
+
+  <section id="s-ente" hidden></section>
+
+  <section id="s-obrigacoes">
+    <h2>Cumprimento das obrigações</h2>
+    <p class="sub" id="obr-sub"></p>
+    <div class="tabela"><table id="t-obr"></table></div>
+  </section>
+
+  <section id="s-alertas">
+    <h2>Sinais de alerta</h2>
+    <p class="sub">Quantidade de entes do recorte em cada situação de alerta. Clique para filtrar.</p>
+    <div class="tabela"><table id="t-alertas"></table></div>
+  </section>
+
+  <section id="s-prazos">
+    <h2>Prazos de transmissão ao SIOPE</h2>
+    <p class="sub" id="prazos-sub"></p>
+    <div class="tabela"><table id="t-prazos"></table></div>
+  </section>
+
+  <section id="s-uf">
+    <h2>Comparativo por UF</h2>
+    <p class="sub">Entes do recorte por UF. A barra mostra a proporção de entes irregulares. Clique numa UF para filtrar.</p>
+    <div class="tabela"><table id="t-uf"></table></div>
+  </section>
+
+  <section id="s-entes">
+    <h2>Comparativo entre entes</h2>
+    <p class="sub">Ordenado pela gravidade (alertas críticos, depois de atenção). Clique no cabeçalho para reordenar e no nome para ver o detalhe.</p>
+    <div class="tabela"><table id="t-entes"></table></div>
+    <button type="button" id="b-mais" class="sec" hidden>Mostrar mais</button>
+  </section>
+
+  <section id="s-lote">
+    <h2>Relatórios em PDF prontos</h2>
+    <p class="sub">Gerados a cada atualização, para o bimestre mais recente de cada exercício: Brasil e cada UF. Para outro recorte (município, região, filtro de situação), use o botão "Gerar PDF deste recorte".</p>
+    <div id="l-lote" class="lote"></div>
+  </section>
+
+  <section id="s-docs">
+    <h2>Verificação documental</h2>
+    <p class="sub">Obrigações da Lei 14.113/2020 que o SIOPE não mede. A verificação cabe à secretaria, à contabilidade, ao CACS-Fundeb e aos órgãos de controle.</p>
+    <ul class="docs" id="l-docs"></ul>
+  </section>
+
+  <footer id="rodape"></footer>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

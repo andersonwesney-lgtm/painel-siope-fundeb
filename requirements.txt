@@ -1,0 +1,8 @@
+# Execução
+requests>=2.31     # API do SIOPE e do IBGE
+PyYAML>=6.0        # arquivos de configuração
+reportlab>=4.0     # PDFs em lote
+# Testes
+pytest>=8.0
+# No navegador (carregados do cdnjs pelo painel, sem instalação):
+#   jsPDF 2.5.1 e jspdf-autotable 3.8.2  -> PDF do recorte filtrado

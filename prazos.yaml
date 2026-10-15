@@ -1,0 +1,35 @@
+# =====================================================================
+# Prazos de transmissão ao SIOPE.
+#
+# Regra legal usada quando não há data oficial cadastrada:
+#   Lei 14.113/2020, art. 38, § 1º: registro em até 30 dias após o
+#   encerramento de cada bimestre.
+#
+# O FNDE pode divulgar cronograma próprio. Quando houver data oficial para um
+# bimestre, cadastre em "cronograma_oficial" com a referência do ato que a
+# fixou. A data oficial sempre prevalece sobre o cálculo.
+# Não cadastre datas sem a referência do ato publicado.
+# =====================================================================
+
+regra_bimestral:
+  dias_apos_fim_do_bimestre: 30
+  dispositivo: Lei 14.113/2020, art. 38, § 1º
+  consequencia: >-
+    Suspensão das transferências voluntárias e da contratação de operações de
+    crédito (exceto as destinadas ao refinanciamento do principal atualizado
+    da dívida mobiliária).
+  conferir: true
+
+# Dados do exercício (6º bimestre) exigidos para habilitação à
+# complementação-VAAT: até 31 de agosto do exercício posterior.
+regra_habilitacao_vaat:
+  mes: 8
+  dia: 31
+  dispositivo: Lei 14.113/2020, art. 13, §§ 4º e 5º (redação da Lei 14.276/2021)
+  conferir: true
+
+# Exemplo de preenchimento (apague o "#" e informe o ato):
+# cronograma_oficial:
+#   2026:
+#     3: {data: "AAAA-MM-DD", ato: "Informe aqui o ato do FNDE que fixou a data"}
+cronograma_oficial: {}

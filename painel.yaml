@@ -1,0 +1,36 @@
+# =====================================================================
+# Configuração do painel nacional SIOPE x Fundeb.
+# Nada aqui exige mudar código a cada período.
+# =====================================================================
+
+painel:
+  titulo: Painel SIOPE e Fundeb
+  subtitulo: Acompanhamento nacional das obrigações da Lei 14.113/2020
+  # Endereço público (preencha depois de publicar; aparece nos PDFs)
+  url_publica: ""
+  responsavel: ""
+
+# Exercícios cobertos.
+#   quantidade: N  -> o exercício corrente e os N-1 anteriores, contados a partir
+#                     da data de execução. Em janeiro de 2027 passa sozinho a
+#                     2026 e 2027. Escolha atual: exercício atual e o anterior.
+#   lista: [2025, 2026] -> lista fixa (ignora "quantidade")
+exercicios:
+  quantidade: 2
+  lista: []
+
+# Coleta (API de dados abertos do SIOPE/FNDE).
+coleta:
+  # Exercícios recoletados a cada execução, para captar retificações e envios
+  # atrasados. Exercícios mais antigos só são baixados se faltarem.
+  recoletar_ultimos_exercicios: 2
+  # Lista oficial de municípios do IBGE: permite mostrar quem NÃO declarou ao
+  # SIOPE (ente que nunca transmitiu não aparece na base do FNDE).
+  usar_lista_ibge: true
+  pausa_entre_consultas_s: 0.3
+
+# PDFs gerados em lote a cada atualização (além do botão no painel).
+pdf_lote:
+  # Para cada exercício coberto, gera para o bimestre mais recente com dados:
+  brasil: true
+  ufs: true
