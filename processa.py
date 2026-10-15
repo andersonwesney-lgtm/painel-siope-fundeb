@@ -318,6 +318,50 @@ def fmt_limite(v, unidade) -> str:
     return fmt_num(v, 0 if float(v).is_integer() else 2) + ("%" if unidade == "%" else "")
 
 
+def _consolidar(dados: Path, ano: int, hoje: date, prazos: list, bims: list, linhas_b: dict,
+                colunas: list, obrig: list, log=print) -> dict:
+    """Opção "Todos os bimestres": junta os bimestres do exercício num só arquivo.
+
+    Os indicadores do SIOPE são acumulados no ano, então valem os do bimestre mais recente em
+    que o ente tem dados (com os alertas de obrigação desse bimestre). Os alertas de transmissão
+    vêm do bimestre mais recente, que já cobre todos os anteriores. A coluna "sgb" traz a
+    situação do ente em cada bimestre, para a evolução. Nada é recalculado: só junta o que já
+    foi avaliado em cada bimestre.
+    """
+    ix = {c: k for k, c in enumerate(colunas)}
+    cols_v = [k for k, c in enumerate(colunas) if c.startswith("v.")]
+    ref = bims[-1]["bimestre"]
+    ordem = [x["bimestre"] for x in bims]
+    letra = {"irregular": "I", "atencao": "A", "regular": "R", "sem_info": "S"}
+    linhas, contagem = [], {"irregular": 0, "atencao": 0, "regular": 0, "sem_info": 0}
+    for n in range(len(linhas_b[ref])):
+        por_b = {b: linhas_b[b][n] for b in ordem}
+        ult = por_b[ref]
+        bv = next((b for b in reversed(ordem) if any(por_b[b][k] is not None for k in cols_v)), ref)
+        base = por_b[bv]
+        alertas = [a for a in base[ix["al"]] if ":o:" in a] + [a for a in ult[ix["al"]] if ":t:" in a]
+        nc = sum(1 for a in alertas if a.startswith("c:"))
+        na = len(alertas) - nc
+        tem_dado = any(por_b[b][ix["sg"]] != "sem_info" for b in ordem)
+        sg = "irregular" if nc else "atencao" if na else "regular" if tem_dado else "sem_info"
+        contagem[sg] += 1
+        linha = list(base)
+        linha[ix["sg"]], linha[ix["nc"]], linha[ix["na"]], linha[ix["al"]] = sg, nc, na, alertas
+        for c in ("tb", "td", "vaat", "tx6"):
+            linha[ix[c]] = ult[ix[c]]
+        sgb = "".join(letra[por_b[b][ix["sg"]]] if b in por_b else "-" for b in range(1, 7))
+        linhas.append(linha + [bv, sgb])
+    h = _gravar(dados / str(ano) / "todos.json", {
+        "ano": ano, "bimestre": ref, "todos": True, "bimestres": ordem, "data_referencia": hoje.isoformat(),
+        "prazos": prazos, "ultima_coleta": bims[-1]["ultima_coleta"], "colunas": colunas + ["bv", "sgb"],
+        "linhas": linhas})
+    log(f"  {ano} todos os bimestres: irregulares {contagem['irregular']} · atenção {contagem['atencao']} · "
+        f"regulares {contagem['regular']}")
+    return {"bimestre": ref, "todos": True, "rotulo": f"Todos os bimestres (1º ao {ref}º)",
+            "arquivo": f"dados/{ano}/todos.json", "sha256": h, "contagem": contagem, "bimestres": ordem,
+            "cobertura": bims[-1]["cobertura"], "ultima_coleta": bims[-1]["ultima_coleta"]}
+
+
 def processar(cfg: Config, saida: Path, hoje: date, log=print, demo: str | None = None) -> dict:
     """Gera site/dados/: catalogo.json, entes.json, <ano>/b<b>.json, <ano>/b<b>/<UF>.json, manifest.json."""
     # Envio após o prazo calculado: só informativo, salvo se prazos.yaml pedir o contrário.
@@ -354,7 +398,7 @@ def processar(cfg: Config, saida: Path, hoje: date, log=print, demo: str | None 
         # transmissões do exercício inteiro (mesmas para todos os bimestres de referência)
         tx = {i: [transmissao(i, entes[i]["uf"], periodos.get((ano, bb)), prazos[bb - 1], ano, bb, hoje)
                   for bb in range(1, 7)] for i in ids}
-        bims = []
+        bims, linhas_b = [], {}
         for b in range(1, 7):
             p = periodos.get((ano, b))
             if p is None or not p["ufs_ind"]:
@@ -396,6 +440,7 @@ def processar(cfg: Config, saida: Path, hoje: date, log=print, demo: str | None 
                 if ind or any(t[0] for t in tx[i]):
                     detalhe[e["uf"]][i] = {"ind": {k: v for k, v in (ind or {}).items() if not k.startswith("_")},
                                            "tx": tx[i]}
+            linhas_b[b] = linhas
             arq = dados / str(ano) / f"b{b}.json"
             h = _gravar(arq, {"ano": ano, "bimestre": b, "data_referencia": hoje.isoformat(),
                               "prazos": prazos, "ultima_coleta": p["ultima_coleta"],
@@ -410,11 +455,12 @@ def processar(cfg: Config, saida: Path, hoje: date, log=print, demo: str | None 
                          "ultima_coleta": p["ultima_coleta"]})
             log(f"  {ano} {b}º bim.: {len(linhas)} entes · irregulares {contagem['irregular']} · "
                 f"atenção {contagem['atencao']} · regulares {contagem['regular']} · sem dados {contagem['sem_info']}")
+        todos = _consolidar(dados, ano, hoje, prazos, bims, linhas_b, colunas, obrig, log) if len(bims) > 1 else None
         if bims:
             # Bimestre exibido ao abrir: o mais recente em que ao menos metade dos entes já declarou.
             maduros = [x["bimestre"] for x in bims if x["cobertura"] >= 0.5]
             manifest["exercicios"].append({"ano": ano, "bimestres": bims, "prazos": prazos,
                                            "bimestre_padrao": maduros[-1] if maduros else bims[-1]["bimestre"],
-                                           "vaat_lista_oficial": lista_vaat is not None})
+                                           "vaat_lista_oficial": lista_vaat is not None, "todos": todos})
     _gravar(dados / "manifest.json", manifest)
     return manifest

@@ -158,6 +158,12 @@ function escreverURL() {
   } catch { /* visualizadores que não permitem alterar o endereço */ }
 }
 
+// [prefixo, período] para os textos: um bimestre, ou todos os bimestres consolidados.
+function rotuloPeriodo(bim) {
+  return bim.todos ? ["todos os bimestres,", `1º ao ${bim.bimestre}º (situação pelo bimestre mais recente de cada ente; evolução bimestre a bimestre)`]
+    : ["dados até o", bim.rotulo];
+}
+
 function exercicioAtual() {
   const ex = S.manifest.exercicios;
   return ex.find((e) => String(e.ano) === String(S.f.ano)) || ex[ex.length - 1];
@@ -166,10 +172,10 @@ function exercicioAtual() {
 async function carregarPeriodo() {
   const ex = exercicioAtual();
   S.f.ano = String(ex.ano);
-  $("f-bim").innerHTML = ex.bimestres.map((b) => `<option value="${b.bimestre}">${esc(b.rotulo)}${b.cobertura < 0.5 ? ` (${fmt2.format(b.cobertura * 100).replace(/,00$/, "")}% dos entes declararam)` : ""}</option>`).join("");
-  const bim = ex.bimestres.find((b) => String(b.bimestre) === String(S.f.bim))
+  $("f-bim").innerHTML = (ex.todos ? `<option value="todos">${esc(ex.todos.rotulo)}</option>` : "") + ex.bimestres.map((b) => `<option value="${b.bimestre}">${esc(b.rotulo)}${b.cobertura < 0.5 ? ` (${fmt2.format(b.cobertura * 100).replace(/,00$/, "")}% dos entes declararam)` : ""}</option>`).join("");
+  const bim = (S.f.bim === "todos" && ex.todos) || ex.bimestres.find((b) => String(b.bimestre) === String(S.f.bim))
     || ex.bimestres.find((b) => b.bimestre === ex.bimestre_padrao) || ex.bimestres[ex.bimestres.length - 1];
-  S.f.bim = String(bim.bimestre);
+  S.f.bim = bim.todos ? "todos" : String(bim.bimestre);
   sincronizarControles();
   let dados = S.cachePeriodo.get(bim.arquivo);
   if (!dados) {
@@ -181,7 +187,7 @@ async function carregarPeriodo() {
   const obr = S.cat.obrigacoes;
   S.linhas = dados.linhas.map((l) => {
     const r = { id: l[ix.id], sg: l[ix.sg], nc: l[ix.nc], na: l[ix.na], al: l[ix.al], tb: l[ix.tb], td: l[ix.td],
-      vaat: l[ix.vaat], tx6: l[ix.tx6], v: {}, s: {} };
+      vaat: l[ix.vaat], tx6: l[ix.tx6], bv: ix.bv != null ? l[ix.bv] : null, sgb: ix.sgb != null ? l[ix.sgb] : null, v: {}, s: {} };
     for (const o of obr) { r.v[o.id] = l[ix["v." + o.id]]; r.s[o.id] = l[ix["s." + o.id]]; }
     r.e = S.entePorId.get(r.id) || { id: r.id, nome: r.id, uf: "", regiao: "", esfera: "", pop: null };
     return r;
@@ -265,12 +271,13 @@ function renderizar() {
   const ag = agregar(rows);
   const { ex, bim, dados } = S.periodo;
   $("meta").innerHTML = [
-    `Exercício <strong>${ex.ano}</strong>`, `dados até o <strong>${esc(bim.rotulo)}</strong>${bim.bimestre < 6 ? " (exercício em andamento)" : ""}`,
+    `Exercício <strong>${ex.ano}</strong>`, `${esc(rotuloPeriodo(bim)[0])} <strong>${esc(rotuloPeriodo(bim)[1])}</strong>${bim.bimestre < 6 ? " (exercício em andamento)" : ""}`,
     `situação calculada em ${fd(dados.data_referencia)}`, `última coleta ${esc((dados.ultima_coleta || "-").slice(0, 10))}`,
     `identificador dos dados <span class="mono">${curto(bim.sha256)}</span>`,
   ].map((x) => `<span>${x}</span>`).join("");
   renderConferir(ex);
   renderResumo(rows, ag);
+  renderEvolucao(rows);
   renderObrigacoes(rows, ag);
   renderAlertas(ag);
   renderPrazos(rows, ag);
@@ -293,7 +300,7 @@ function renderConferir(ex) {
 
 function renderResumo(rows, ag) {
   const t = (cls, rot, n, sub) => `<div class="tile ${cls}"><span class="eyebrow">${rot}</span><span class="n">${n}</span><span class="sub">${sub}</span></div>`;
-  const b = Number(S.f.bim);
+  const b = S.periodo.bim.bimestre;
   const tb = ag.tx[b - 1];
   $("resumo").innerHTML = [
     t("", "Entes no recorte", fmtInt.format(ag.total), esc(descreverRecorte())),
@@ -311,11 +318,38 @@ function celObrigacao(o, compacto) {
     ${o.conferir ? `<span class="flag">Referência legal a conferir na fonte oficial</span>` : ""}`;
 }
 
+/* Evolução (só na opção "Todos os bimestres"): situação dos entes do recorte em cada bimestre. */
+const LETRA_SIT = { I: "irregular", A: "atencao", R: "regular", S: "sem_info" };
+function evolucao(rows) {
+  const bims = S.periodo.bim.bimestres || [];
+  return bims.map((b) => {
+    const c = { irregular: 0, atencao: 0, regular: 0, sem_info: 0 };
+    for (const r of rows) { const k = LETRA_SIT[(r.sgb || "")[b - 1]]; if (k) c[k]++; }
+    return [b, c];
+  });
+}
+function renderEvolucao(rows) {
+  let sec = $("s-evolucao");
+  if (!S.periodo.bim.todos) { if (sec) sec.hidden = true; return; }
+  if (!sec) {
+    sec = document.createElement("section");
+    sec.id = "s-evolucao";
+    $("s-obrigacoes").before(sec);
+  }
+  sec.hidden = false;
+  const cols = [["irregular", "Irregulares"], ["atencao", "Atenção"], ["regular", "Regulares"], ["sem_info", "Sem dados"]];
+  sec.innerHTML = `<h2>Evolução por bimestre</h2><p class="sub">Situação dos entes do recorte em cada bimestre, como avaliada no próprio bimestre.</p>
+    <div class="tabela"><table><thead><tr><th>Bimestre</th>${cols.map(([, r]) => `<th class="num">${r}</th>`).join("")}</tr></thead><tbody>${
+      evolucao(rows).map(([b, c]) => `<tr><td>${b}º bimestre</td>${cols.map(([k]) => `<td class="num">${c[k] ? `<span class="pill ${sit(k).nivel}">${fmtInt.format(c[k])}</span>` : "-"}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+const faixaBimestres = (r) => [...(r.sgb || "")].map((l, k) => l === "-" ? "" : `<span class="pill ${sit(LETRA_SIT[l]).nivel}" title="${k + 1}º bimestre: ${esc(sit(LETRA_SIT[l]).rotulo)}">${k + 1}</span>`).join(" ");
+
 function renderObrigacoes(rows, ag) {
   const unico = rows.length === 1 ? rows[0] : null;
   $("obr-sub").textContent = unico
     ? "Valores acumulados até o bimestre de referência. Obrigações anuais se fecham no 6º bimestre."
     : "Quantidade de entes do recorte em cada situação. Obrigações anuais se fecham no 6º bimestre; antes disso a situação é parcial.";
+  if (S.periodo.bim.todos) $("obr-sub").textContent += " Em \"Todos os bimestres\", vale o bimestre mais recente com dados de cada ente.";
   if (unico) {
     $("t-obr").innerHTML = `<thead><tr><th>Ind.</th><th>Obrigação e dispositivo</th><th class="num">Valor</th><th>Regra</th><th>Situação</th></tr></thead><tbody>` +
       S.cat.obrigacoes.map((o) => `<tr><td class="code">${o.cod_exib}</td><td>${celObrigacao(o)}${o.nota ? `<span class="nota">${esc(o.nota)}</span>` : ""}</td>
@@ -408,9 +442,9 @@ function renderEntes(rows) {
   const ord = ordenar(rows);
   const vis = ord.slice(0, S.limite);
   const th = (col, rot, num) => `<th class="ord${num ? " num" : ""}" data-col="${col}"${S.ordem.col === col ? ` aria-sort="${S.ordem.dir > 0 ? "ascending" : "descending"}"` : ""}>${rot}</th>`;
-  $("t-entes").innerHTML = `<thead><tr>${th("nome", "Ente")}${th("uf", "UF")}${th("grav", "Situação")}<th>Alertas</th><th>${S.f.bim}º bim.</th>${obr.map((o) => th(o.id, esc(o.curto), true)).join("")}${th("pop", "População", true)}</tr></thead><tbody>` +
+  $("t-entes").innerHTML = `<thead><tr>${th("nome", "Ente")}${th("uf", "UF")}${th("grav", "Situação")}<th>Alertas</th><th>${S.periodo.bim.todos ? "Por bimestre" : `${S.periodo.bim.bimestre}º bim.`}</th>${obr.map((o) => th(o.id, esc(o.curto), true)).join("")}${th("pop", "População", true)}</tr></thead><tbody>` +
     (vis.length ? vis.map((r) => `<tr><td><button type="button" class="link" data-id="${r.id}">${esc(r.e.nome)}</button></td><td>${r.e.uf}</td><td>${pill(r.sg)}</td>
-      <td class="num">${r.nc ? `<span class="pill critico">${r.nc}</span> ` : ""}${r.na ? `<span class="pill atencao">${r.na}</span>` : ""}</td><td>${pill(r.tb)}</td>
+      <td class="num">${r.nc ? `<span class="pill critico">${r.nc}</span> ` : ""}${r.na ? `<span class="pill atencao">${r.na}</span>` : ""}</td><td>${S.periodo.bim.todos ? faixaBimestres(r) : pill(r.tb)}</td>
       ${obr.map((o) => `<td class="num"><span class="pill ${sit(r.s[o.id]).nivel}" title="${esc(sit(r.s[o.id]).rotulo)}">${fv(r.v[o.id], "%")}</span></td>`).join("")}
       <td class="num">${r.e.pop ? fmtInt.format(r.e.pop) : "-"}</td></tr>`).join("") : `<tr><td class="vazio" colspan="9">Nenhum ente no recorte.</td></tr>`) + "</tbody>";
   $("b-mais").hidden = ord.length <= S.limite;
@@ -439,9 +473,9 @@ async function carregarLote() {
 }
 
 /* ------------------------------------------------------- detalhe do ente ---- */
-const chaveUF = (uf) => `${S.f.ano}/b${S.f.bim}/${uf}`;
-async function detalheUF(uf) {
-  const k = chaveUF(uf);
+const chaveUF = (uf, b) => `${S.f.ano}/b${b || S.periodo.bim.bimestre}/${uf}`;
+async function detalheUF(uf, b) {
+  const k = chaveUF(uf, b);
   if (!S.cacheUF.has(k)) S.cacheUF.set(k, await getJSON(`dados/${k}.json`));
   return S.cacheUF.get(k);
 }
@@ -453,7 +487,7 @@ async function renderDetalhe() {
   sec.hidden = false;
   sec.innerHTML = `<div class="vazio">Carregando detalhe…</div>`;
   let det;
-  try { det = await detalheUF(r.e.uf); } catch (e) { sec.innerHTML = `<div class="vazio">Não foi possível carregar o detalhe (${esc(e.message)}).</div>`; return; }
+  try { det = await detalheUF(r.e.uf, r.bv); } catch (e) { sec.innerHTML = `<div class="vazio">Não foi possível carregar o detalhe (${esc(e.message)}).</div>`; return; }
   if (S.detalhe !== r.id) return;
   const d = det.entes[r.id] || { ind: {}, tx: null };
   const alertas = r.al.map(alertaInfo);
@@ -494,7 +528,7 @@ async function gerarPDF() {
     const rows = filtrar();
     const unico = rows.length === 1 ? rows[0] : null;
     let det = null;
-    if (unico) det = (await detalheUF(unico.e.uf)).entes[unico.id] || null;
+    if (unico) det = (await detalheUF(unico.e.uf, unico.bv)).entes[unico.id] || null;
     const doc = montarPDF(rows, unico, det);
     const nome = `siope-fundeb_${S.f.ano}_b${S.f.bim}_${norm(descreverRecorte()).replace(/[^a-z0-9]+/g, "-").slice(0, 60)}.pdf`;
     doc.save(nome);
@@ -525,7 +559,7 @@ function montarPDF(rows, unico, det) {
 
   doc.setFont("helvetica", "bold"); doc.setFontSize(15);
   doc.text(doc.splitTextToSize(`${S.cat.painel.titulo || "Painel SIOPE e Fundeb"}: ${descreverRecorte()}`, W), M, y); y += 8;
-  paragrafo(`Exercício ${ex.ano} · dados até o ${bim.rotulo}${bim.bimestre < 6 ? " (exercício em andamento)" : ""} · situação calculada em ${fd(dados.data_referencia)} · última coleta ${(dados.ultima_coleta || "-").slice(0, 10)}`, 8.5);
+  paragrafo(`Exercício ${ex.ano} · ${rotuloPeriodo(bim).join(" ")}${bim.bimestre < 6 ? " (exercício em andamento)" : ""} · situação calculada em ${fd(dados.data_referencia)} · última coleta ${(dados.ultima_coleta || "-").slice(0, 10)}`, 8.5);
   paragrafo(`Recorte: ${descreverRecorte()}. Fonte: dados abertos do SIOPE/FNDE. Lei 14.113/2020 (Fundeb) e Constituição Federal.`, 7.6, true);
   if (S.manifest.demo) paragrafo(S.manifest.demo, 8.5);
 
@@ -543,8 +577,14 @@ function montarPDF(rows, unico, det) {
       `${fmtInt.format(ag.sg.regular)} (${pct(ag.sg.regular, ag.total)})`, fmtInt.format(ag.sg.sem_info),
       `${fmtInt.format((tb.no_prazo || 0) + (tb.fora_prazo || 0) + (tb.sem_data || 0))} (${fmtInt.format(tb.atrasado || 0)} vencidos sem envio)`]]);
 
+  if (bim.todos) {
+    titulo("Evolução por bimestre");
+    tabela(["Bimestre", "Irregulares", "Atenção", "Regulares", "Sem dados"],
+      evolucao(rows).map(([b, c]) => [`${b}º bimestre`, ...["irregular", "atencao", "regular", "sem_info"].map((k) => (c[k] ? fmtInt.format(c[k]) : "-"))]));
+  }
+
   titulo("Cumprimento das obrigações");
-  paragrafo("Valores acumulados até o bimestre de referência. Obrigações anuais se fecham no 6º bimestre. [conferir] = referência legal a conferir na fonte oficial.", 7.4, true);
+  paragrafo((bim.todos ? "Todos os bimestres: valores, situação e alertas do bimestre mais recente com dados de cada ente. " : "") + "Valores acumulados até o bimestre de referência. Obrigações anuais se fecham no 6º bimestre. [conferir] = referência legal a conferir na fonte oficial.", 7.4, true);
   const txtObr = (o) => `${o.titulo}\n${o.obrigacao}\n${o.dispositivo}${o.conferir ? " [conferir]" : ""}`;
   if (unico) {
     tabela(["Ind.", "Obrigação e dispositivo", "Valor", "Regra", "Situação"],
@@ -617,7 +657,7 @@ function montarPDF(rows, unico, det) {
   const n = doc.getNumberOfPages();
   for (let i = 1; i <= n; i++) {
     doc.setPage(i); doc.setFont("helvetica", "normal"); doc.setFontSize(6.8); doc.setTextColor(90, 102, 112);
-    doc.text(`${descreverRecorte().slice(0, 70)} · ${ex.ano} · ${bim.bimestre}º bim. · dados ${curto(bim.sha256)}`, M, 290);
+    doc.text(`${descreverRecorte().slice(0, 70)} · ${ex.ano} · ${bim.todos ? `todos os bim. (1º ao ${bim.bimestre}º)` : `${bim.bimestre}º bim.`} · dados ${curto(bim.sha256)}`, M, 290);
     doc.text(`Página ${i} de ${n}`, 210 - M, 290, { align: "right" });
   }
   doc.setProperties({ title: `SIOPE e Fundeb: ${descreverRecorte()}`, subject: `Exercício ${ex.ano}, ${bim.rotulo}`, keywords: `SIOPE; Fundeb; Lei 14.113/2020; ${bim.sha256}` });
