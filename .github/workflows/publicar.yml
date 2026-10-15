@@ -1,0 +1,77 @@
+# Coleta nacional do SIOPE, processamento, PDFs em lote e publicação no GitHub Pages.
+# Roda toda segunda-feira, a cada alteração de configuração e pelo botão "Run workflow".
+name: Publicar painel SIOPE
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"   # segunda-feira, 05:00 em Brasília
+  workflow_dispatch:
+    inputs:
+      forcar:
+        description: "Baixar de novo todos os exercícios (ignora o que já está guardado)"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths: ["config/**", "dados/importados/**", "siope_brasil/**", "web/**"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Testes
+        run: python -m pytest -q
+      # Os dados brutos ficam guardados entre execuções: só os exercícios recentes
+      # são baixados de novo (ver coleta.recoletar_ultimos_exercicios).
+      - name: Restaurar dados já coletados
+        uses: actions/cache/restore@v4
+        with:
+          path: dados/brutos
+          key: brutos-${{ github.run_id }}
+          restore-keys: brutos-
+      - name: Coletar SIOPE (todas as UFs)
+        run: python -m siope_brasil coletar ${{ inputs.forcar && '--forcar' || '' }}
+      - name: Guardar dados coletados
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: dados/brutos
+          key: brutos-${{ github.run_id }}
+      - name: Processar, montar o painel e gerar PDFs em lote
+        run: python -m siope_brasil gerar
+      - name: Arquivar dados brutos desta execução (90 dias)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dados-brutos-${{ github.run_id }}
+          path: dados/brutos
+          retention-days: 90
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  publicar:
+    needs: gerar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
