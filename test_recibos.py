@@ -111,6 +111,8 @@ def test_capela_corrigida_sem_duplicar(projeto, monkeypatch):
     ix = {c: k for k, c in enumerate(dados["colunas"])}
     capela = next(l for l in dados["linhas"] if l[ix["id"]] == "270170")
     assert capela[ix["tb"]] == "fora_prazo" and capela[ix["td"]] == "2026-10-08"
+    # transmitido, mas o FNDE ainda não publicou o indicador na base aberta: não é "sem dados"
+    assert capela[ix["s.mde_25"]] == "nao_publicado"
     assert m["exercicios"][0]["bimestres"][-1]["via_recibo"] == 1
 
 

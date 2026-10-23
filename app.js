@@ -359,7 +359,7 @@ function renderObrigacoes(rows, ag) {
         <td class="num">${fv(unico.v[o.id], o.unidade)}</td><td>${esc(o.regra)}</td><td>${pill(unico.s[o.id])}</td></tr>`).join("") + "</tbody>";
     return;
   }
-  const cols = [["cumprida", "Cumpridas"], ["descumprida", "Descumpridas"], ["parcial_ok", "No rumo (parcial)"], ["parcial_abaixo", "Fora da regra (parcial)"], ["apuracao_anual", "Apurado no 6º bim."], ["sem_dados", "Sem dados"], ["nao_aplica", "Não se aplica"]];
+  const cols = [["cumprida", "Cumpridas"], ["descumprida", "Descumpridas"], ["parcial_ok", "No rumo (parcial)"], ["parcial_abaixo", "Fora da regra (parcial)"], ["apuracao_anual", "Apurado no 6º bim."], ["sem_dados", "Sem dados"], ["nao_publicado", "Aguardando base aberta"], ["nao_aplica", "Não se aplica"]];
   $("t-obr").innerHTML = `<thead><tr><th>Ind.</th><th>Obrigação e dispositivo</th><th>Regra</th>${cols.map(([, r]) => `<th class="num">${r}</th>`).join("")}<th class="num">Cumprimento</th></tr></thead><tbody>` +
     S.cat.obrigacoes.filter((o) => o.tipo !== "informativo").map((o) => {
       const c = ag.obr[o.id];
@@ -596,7 +596,7 @@ function montarPDF(rows, unico, det) {
       S.cat.obrigacoes.map((o) => [o.cod_exib, txtObr(o) + (o.nota ? `\nNota: ${o.nota}` : ""), fv(unico.v[o.id], o.unidade), o.regra, S_(unico.s[o.id])]),
       { columnStyles: { 0: { cellWidth: 10 }, 2: { cellWidth: 24, halign: "right" }, 3: { cellWidth: 30 }, 4: { cellWidth: 28 } }, ...pintar([4]) });
   } else {
-    const ks = [["cumprida", "Cumpr."], ["descumprida", "Descumpr."], ["parcial_ok", "No rumo"], ["parcial_abaixo", "Fora (parc.)"], ["apuracao_anual", "Apur. 6º bim."], ["sem_dados", "Sem dados"], ["nao_aplica", "N/A"]];
+    const ks = [["cumprida", "Cumpr."], ["descumprida", "Descumpr."], ["parcial_ok", "No rumo"], ["parcial_abaixo", "Fora (parc.)"], ["apuracao_anual", "Apur. 6º bim."], ["sem_dados", "Sem dados"], ["nao_publicado", "Aguard. base"], ["nao_aplica", "N/A"]];
     tabela(["Ind.", "Obrigação e dispositivo", "Regra", ...ks.map((k) => k[1]), "Cumpr. %"],
       S.cat.obrigacoes.filter((o) => o.tipo !== "informativo").map((o) => {
         const c = ag.obr[o.id], bons = (c.cumprida || 0) + (c.parcial_ok || 0), ruins = (c.descumprida || 0) + (c.parcial_abaixo || 0);

@@ -29,6 +29,7 @@ SITUACOES = {
     "apuracao_anual": ("Apurado no 6º bimestre", "neutro"),
     "verificar": ("Verificar", "atencao"),
     "sem_dados": ("Sem dados", "neutro"),
+    "nao_publicado": ("Transmitido, indicador ainda não publicado na base aberta", "neutro"),
     "nao_aplica": ("Não se aplica", "neutro"),
     "informativo": ("Acompanhamento", "neutro"),
     # transmissões
@@ -446,8 +447,11 @@ def processar(cfg: Config, saida: Path, hoje: date, log=print, demo: str | None 
                 com_indicadores += bool(ind)
                 vaat = situacao_vaat(i, ind, lista_vaat)
                 alertas, celulas = [], []
+                transmitiu = tx[i][b - 1][1] in ("no_prazo", "fora_prazo", "sem_data")
                 for o in obrig:
                     s, v, _ = avaliar(o, e["esfera"], ind, ano, b, vaat)
+                    if s == "sem_dados" and transmitiu:  # SIOPE já recebeu; falta o FNDE publicar na base aberta
+                        s = "nao_publicado"
                     celulas += [v, s]
                     if s == "descumprida":
                         alertas.append(f"c:o:{o['id']}")

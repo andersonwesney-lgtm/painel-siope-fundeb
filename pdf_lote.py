@@ -177,7 +177,7 @@ def gerar(d: Dados, ano: int, b: int, rows: list[dict], recorte: str, ex: dict, 
     h.append(P("Valores acumulados até o bimestre de referência. Obrigações anuais se fecham no 6º bimestre. "
                "[conferir] = referência legal a conferir na fonte oficial.", "pm"))
     ks = [("cumprida", "Cumpr."), ("descumprida", "Descumpr."), ("parcial_ok", "No rumo"),
-          ("parcial_abaixo", "Fora (parc.)"), ("apuracao_anual", "Apur. 6º bim."), ("sem_dados", "Sem dados"),
+          ("parcial_abaixo", "Fora (parc.)"), ("apuracao_anual", "Apur. 6º bim."), ("sem_dados", "Sem dados"), ("nao_publicado", "Aguard. base"),
           ("nao_aplica", "N/A")]
     linhas = []
     for o in cat["obrigacoes"]:
@@ -190,7 +190,7 @@ def gerar(d: Dados, ano: int, b: int, rows: list[dict], recorte: str, ex: dict, 
         linhas.append([P(o["cod_exib"]), P(txt, "cp"), P(o["regra"], "cp")] +
                       [P(fmt_int(c[k]) if c.get(k) else "-") for k, _ in ks] + [P(pct(bons, bons + ruins))])
     h.append(tabela(["Ind.", "Obrigação e dispositivo", "Regra"] + [r for _, r in ks] + ["Cumpr. %"], linhas,
-                    [9 * mm, W - 9 * mm - 22 * mm - 8 * 12.5 * mm, 22 * mm] + [12.5 * mm] * 8))
+                    [9 * mm, W - 9 * mm - 22 * mm - 9 * 11.5 * mm, 22 * mm] + [11.5 * mm] * 9))
 
     h.append(Paragraph("Sinais de alerta", st["h2"]))
     itens = sorted(((alerta_info(cat, c), n) for c, n in ag["al"].items()),
