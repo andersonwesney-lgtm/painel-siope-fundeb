@@ -1,5 +1,5 @@
 {
- "inicio": "2026-10-23T19:54:06+00:00",
+ "inicio": "2026-10-23T20:35:12+00:00",
  "data_referencia": "2026-10-23",
  "etapas": {
   "api": {
@@ -7,7 +7,7 @@
    "reaproveitadas": 0,
    "falhas": 1,
    "exemplos_falha": [
-    "IBGE: HTTPSConnectionPool(host='servicodados.ibge.gov.br', port=443): Max retries exceeded with url: /api/v1/localidades/municipios?view=nivelado (Caused by ConnectTimeoutError(<HTTPSConnection(host='servicodados.ibge.gov.br', port=443) at 0x7f4d67f4d9a0>, 'Connection to servicodados.ibge.gov.br timed out. (connect timeout=180)'))"
+    "IBGE: HTTPSConnectionPool(host='servicodados.ibge.gov.br', port=443): Max retries exceeded with url: /api/v1/localidades/municipios?view=nivelado (Caused by ConnectTimeoutError(<HTTPSConnection(host='servicodados.ibge.gov.br', port=443) at 0x7f0b9c1293d0>, 'Connection to servicodados.ibge.gov.br timed out. (connect timeout=180)'))"
    ]
   },
   "recibos": {
@@ -22,6 +22,19 @@
    "status": "ok",
    "mensagem": ""
   },
+  "indicadores_tc": {
+   "alvos": 2336,
+   "consultados": 2334,
+   "com_dados": 2324,
+   "novos": 2324,
+   "atualizados": 0,
+   "erros": 10,
+   "periodos": [
+    "2026-b4"
+   ],
+   "status": "falha",
+   "mensagem": "rede: HTTP 400"
+  },
   "site": {
    "entes_com_indicadores": {
     "2025-b1": 5589,
@@ -35,12 +48,13 @@
     "2026-b3": 5233,
     "2026-b4": 3536
    },
-   "gerado_em": "2026-10-23T20:34:24+00:00"
+   "gerado_em": "2026-10-23T21:40:46+00:00"
   }
  },
  "avisos": [
-  "API do SIOPE: 1 de 541 consulta(s) falharam; usados os dados guardados"
+  "API do SIOPE: 1 de 541 consulta(s) falharam; usados os dados guardados",
+  "Indicadores (webservice TC): rede: HTTP 400. Mantidos os já guardados."
  ],
  "status": "aviso",
- "fim": "2026-10-23T20:34:30+00:00"
+ "fim": "2026-10-23T21:40:54+00:00"
 }
