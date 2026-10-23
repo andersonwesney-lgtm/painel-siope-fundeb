@@ -173,6 +173,19 @@ def resposta_tc(ente="270170", ano=2026, b=4, ind=(("1.1", "26.5"), ("1.2", "58.
                       "indicador": [{"cod_indicador": c, "vlr_indicador": v} for c, v in ind]}]}
 
 
+def test_estado_vem_da_consulta_geral(monkeypatch):
+    cli = indicadores_tc.Cliente(0, "teste")
+    chamadas = []
+    todos = {"ente": [{"sgl_uf": "AL", "cod_municipio": None, "num_ano": "2026", "num_periodo": "4",
+                       "indicador": [{"cod_indicador": "1.1", "vlr_indicador": "25.1"}]},
+                      resposta_tc()["ente"][0]]}
+    monkeypatch.setattr(cli, "_get", lambda params, timeout=90: chamadas.append(params) or todos)
+    for _ in range(2):
+        r = cli.consultar("UF-AL", 2026, 4)
+        assert indicadores_tc.ler_resposta(r, "UF-AL", 2026, 4) == {"1.1": 25.1}
+    assert chamadas == [{"num_ano": 2026, "num_periodo": 4}]  # uma consulta geral só
+
+
 def test_le_resposta_do_webservice_tc():
     assert indicadores_tc.ler_resposta(resposta_tc(), "270170", 2026, 4) == {"1.1": 26.5, "1.2": 58.46}
     assert indicadores_tc.ler_resposta({"dat_consulta": "x", "ente": []}, "270170", 2026, 4) == {}

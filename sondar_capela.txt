@@ -1,0 +1,9 @@
+import json, urllib.request
+u = "https://andersonwesney-lgtm.github.io/painel-siope-fundeb/dados/"
+m = json.load(urllib.request.urlopen(u + "manifest.json?v=31"))
+b4 = [b for e in m["exercicios"] for b in e["bimestres"] if e["ano"] == 2026 and b.get("bimestre") == 4][0]
+print("MANIFEST b4", {k: b4.get(k) for k in ("via_recibo", "via_tc", "entes_com_indicadores", "contagem")}, m.get("gerado_em"))
+d = json.load(urllib.request.urlopen(u + "2026/b4.json?v=31"))
+ix = {c: k for k, c in enumerate(d["colunas"])}
+l = next(l for l in d["linhas"] if str(l[ix["id"]]) == "270170")
+print("CAPELA", dict(zip(d["colunas"], l)))

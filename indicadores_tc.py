@@ -68,6 +68,7 @@ class Cliente:
     def __init__(self, pausa_s: float, agente: str):
         self.pausa_s, self.agente = pausa_s, agente
         self._local = threading.local()
+        self._todos, self._trava = {}, threading.Lock()
 
     def _sessao(self):
         import requests
@@ -79,13 +80,25 @@ class Cliente:
         return s
 
     def consultar(self, ente: str, ano: int, b: int):
-        params = {"num_ano": ano, "num_periodo": b}
-        params |= {"sgl_uf": ente[3:]} if ente.startswith("UF-") else {"cod_municipio": ente}
+        if ente.startswith("UF-"):
+            # Filtro por sgl_uf falha no servidor (HTTP 400, ORA-01722, 23/10/2026). Sem filtro de ente,
+            # o serviço devolve todos os entes do período: baixa uma vez e separa os governos estaduais.
+            with self._trava:
+                if (ano, b) not in self._todos:
+                    self._todos[(ano, b)] = self._get({"num_ano": ano, "num_periodo": b}, timeout=300)
+                todos = self._todos[(ano, b)]
+            if not isinstance(todos, dict) or not isinstance(todos.get("ente"), list):
+                raise FonteMudou("resposta sem a lista 'ente'")
+            return {"ente": [e for e in todos["ente"] if isinstance(e, dict)
+                             and e.get("sgl_uf") == ente[3:] and not e.get("cod_municipio")]}
+        return self._get({"num_ano": ano, "num_periodo": b, "cod_municipio": ente})
+
+    def _get(self, params: dict, timeout: int = 90):
         ultimo = None
         for tentativa in range(3):
             time.sleep(self.pausa_s * (1 + 2 * tentativa))
             try:
-                r = self._sessao().get(URL, params=params, timeout=90)
+                r = self._sessao().get(URL, params=params, timeout=timeout)
                 if r.status_code == 200:
                     try:
                         return r.json()
