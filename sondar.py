@@ -7,8 +7,14 @@ def get(u, data=None, t=60):
         return r.headers.get("Content-Type", ""), r.read().decode("latin-1", "replace")
 def opts(h, nome):
     m = re.search(r'<select[^>]*name="%s"[^>]*>(.*?)</select>' % nome, h, re.S | re.I)
-    return re.findall(r'<option[^>]*value="([^"]*)"[^>]*>([^<]*)', m.group(1)) if m else None
+    if not m: return []
+    out = []
+    for a, n in re.findall(r'<option([^>]*)>([^<]*)', m.group(1), re.I):
+        v = re.search(r'value\s*=\s*["\']?([^"\'\s>]*)', a, re.I)
+        out.append((v.group(1) if v else n.strip(), n.strip()))
+    return out
 ct, h = get(U)
+i = h.find('name="cod_uf_mun"'); print(repr(h[i-50:i+500]))
 print("cod_uf_mun:", opts(h, "cod_uf_mun"))
 al = [v for v, n in opts(h, "cod_uf_mun") if "Alagoas" in n][0]
 ct, h = get(U, {"tipoDeRecibo": "1", "cod_uf_mun": al})
