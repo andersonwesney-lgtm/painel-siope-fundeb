@@ -65,8 +65,7 @@ def resumo_publicacao(man: dict) -> dict:
         for b in ex.get("bimestres", []):
             if b.get("todos"):
                 continue
-            c = b.get("contagem", {})
-            r[f"{ex['ano']}-b{b['bimestre']}"] = sum(n for k, n in c.items() if k != "sem_info")
+            r[f"{ex['ano']}-b{b['bimestre']}"] = b.get("entes_com_indicadores", 0)
     return {"entes_com_dados": r}
 
 

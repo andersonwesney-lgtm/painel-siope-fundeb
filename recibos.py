@@ -149,7 +149,7 @@ def carregar(cfg: Config) -> dict:
 def gravar(cfg: Config, estado: dict) -> bool:
     """Grava só se mudou (ordem estável). Devolve True se o arquivo mudou."""
     a = arquivo(cfg)
-    novo = json.dumps(estado, ensure_ascii=False, sort_keys=True, indent=0)
+    novo = json.dumps(estado, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     if a.exists() and a.read_text(encoding="utf-8") == novo:
         return False
     a.parent.mkdir(parents=True, exist_ok=True)
@@ -211,6 +211,10 @@ def atualizar(cfg: Config, hoje: date, log=print) -> dict:
     """Consulta os recibos que faltam e grava. Devolve um resumo para o registro de execução."""
     rc = cfg.recibos
     estado = carregar(cfg)
+    # Guarda só os exercícios cobertos pelo painel. A página devolve o histórico inteiro do ente;
+    # os bimestres anteriores ao ponto de partida vêm de graça e corrigem esses períodos também.
+    anos = set(cfg.exercicios(hoje))
+    estado["registros"] = {k: v for k, v in estado["registros"].items() if int(k.split("|")[1]) in anos}
     lista = alvos(cfg, hoje, estado)
     limite = int(rc.get("max_consultas_por_execucao", 3000))
     prazo_fim = time.monotonic() + 60 * float(rc.get("tempo_maximo_min", 150))
@@ -256,6 +260,8 @@ def atualizar(cfg: Config, hoje: date, log=print) -> dict:
                 falhas_seguidas[0] = 0
                 estado["consultados"][i] = agora
                 for r in recs:
+                    if r["ano"] not in anos:
+                        continue
                     k = chave(i, r["ano"], r["bimestre"])
                     antigo = estado["registros"].get(k)
                     novo = {kk: r[kk] for kk in ("situacao", "recibo", "processado_em", "transmitido_em",
