@@ -55,6 +55,8 @@ function alertaInfo(cod) {
     const titulo = nivel === "c" ? `${o.titulo}: descumprida` : `${o.titulo}: fora da regra até o bimestre`;
     return { nivel: nivel === "c" ? "critico" : "atencao", titulo, base: o.dispositivo, filtro: { obr: ref } };
   }
+  if (tipo === "s") return { nivel: "atencao", titulo: `${ref}º bimestre sem registro na base aberta do SIOPE, prazo vencido (pode já ter sido transmitido)`,
+    base: S.cat.prazo_regra.dispositivo, filtro: { tx: "vencido" } };
   const titulo = nivel === "c" ? `${ref}º bimestre não transmitido, prazo vencido` : `${ref}º bimestre transmitido após o prazo`;
   return { nivel: nivel === "c" ? "critico" : "atencao", titulo, base: S.cat.prazo_regra.dispositivo,
     filtro: nivel === "c" ? { tx: "vencido" } : {} };
@@ -221,7 +223,7 @@ function filtrar() {
     if (f.sit && r.sg !== f.sit) return false;
     if (f.obr && !SIT_PROBLEMA.includes(r.s[f.obr])) return false;
     if (f.tx) {
-      if (f.tx === "vencido") { if (!r.al.some((a) => a.startsWith("c:t:"))) return false; }
+      if (f.tx === "vencido") { if (!r.al.some((a) => a.startsWith("c:t:") || a.startsWith("a:s:"))) return false; }
       else if (r.tb !== f.tx) return false;
     }
     if (faixa && (e.pop == null || e.pop < faixa.min || (faixa.max != null && e.pop >= faixa.max))) return false;
@@ -257,7 +259,7 @@ function agregar(rows) {
     for (let k = 0; k < 6; k++) { const s = S.cat.cod_tx[r.tx6[k]]; a.tx[k][s] = (a.tx[k][s] || 0) + 1; }
     const u = (a.uf[r.e.uf] ||= { n: 0, irregular: 0, atencao: 0, sem_info: 0, vencido: 0, rem: 0, mde: 0 });
     u.n++; if (r.sg === "irregular") u.irregular++; if (r.sg === "atencao") u.atencao++; if (r.sg === "sem_info") u.sem_info++;
-    if (r.al.some((c) => c.startsWith("c:t:"))) u.vencido++;
+    if (r.al.some((c) => c.startsWith("c:t:") || c.startsWith("a:s:"))) u.vencido++;
     if (r.s.remuneracao_70 === "descumprida") u.rem++;
     if (r.s.mde_25 === "descumprida") u.mde++;
   }
@@ -292,6 +294,7 @@ function renderConferir(ex) {
   const n = S.cat.obrigacoes.filter((o) => o.conferir).length;
   const itens = [];
   if (n) itens.push(`${n} referência(s) legal(is) marcadas para conferência na fonte oficial (config/obrigacoes.yaml).`);
+  if (S.cat.base_aberta_so_aviso) itens.push("Transmissões vêm da base de dados abertos do SIOPE (FNDE), que é atualizada com atraso em relação ao sistema SIOPE. Ente sem registro nela após o prazo aparece em atenção, não como irregular: confira no relatório de municípios transmitidos do SIOPE.");
   if (ex.prazos.some((p) => p.calculado)) itens.push(`Prazos de transmissão calculados pela regra do ${esc(S.cat.prazo_regra.dispositivo)}; cadastre o cronograma oficial do FNDE em config/prazos.yaml, se houver.`);
   if (!ex.vaat_lista_oficial) itens.push(esc(S.cat.vaat_nota));
   $("conferir").innerHTML = itens.length ? `<strong>Conferir antes de usar em prestação de contas.</strong><ul>${itens.map((i) => `<li>${i}</li>`).join("")}</ul>` : "";
@@ -304,11 +307,11 @@ function renderResumo(rows, ag) {
   const tb = ag.tx[b - 1];
   $("resumo").innerHTML = [
     t("", "Entes no recorte", fmtInt.format(ag.total), esc(descreverRecorte())),
-    t("critico", "Irregulares", fmtInt.format(ag.sg.irregular), `${pct(ag.sg.irregular, ag.total)} · descumprimento ou prazo vencido`),
+    t("critico", "Irregulares", fmtInt.format(ag.sg.irregular), `${pct(ag.sg.irregular, ag.total)} · ${S.cat.base_aberta_so_aviso ? "descumprimento de obrigação" : "descumprimento ou prazo vencido"}`),
     t("atencao", "Atenção", fmtInt.format(ag.sg.atencao), `${pct(ag.sg.atencao, ag.total)} · a verificar ou acompanhar`),
     t("ok", "Regulares", fmtInt.format(ag.sg.regular), `${pct(ag.sg.regular, ag.total)} · sem alertas`),
     t("", `${b}º bimestre transmitido`, fmtInt.format((tb.no_prazo || 0) + (tb.fora_prazo || 0) + (tb.sem_data || 0)),
-      `${fmtInt.format(tb.no_prazo || 0)} no prazo · ${fmtInt.format(tb.atrasado || 0)} vencidos sem envio`),
+      `${fmtInt.format(tb.no_prazo || 0)} no prazo · ${fmtInt.format(tb.atrasado || 0)} sem registro após o prazo`),
   ].join("");
 }
 
@@ -394,7 +397,7 @@ function renderPrazos(rows, ag) {
       }).join("") + "</tbody>";
     return;
   }
-  const cols = [["no_prazo", "No prazo"], ["fora_prazo", "Após o prazo"], ["atrasado", "Vencido sem envio"], ["aguardando", "Dentro do prazo"], ["em_curso", "Em curso"]];
+  const cols = [["no_prazo", "No prazo"], ["fora_prazo", "Após o prazo"], ["atrasado", "Sem registro, prazo vencido"], ["aguardando", "Dentro do prazo"], ["em_curso", "Em curso"]];
   $("t-prazos").innerHTML = `<thead><tr><th>Bimestre</th><th>Prazo</th>${cols.map(([, r]) => `<th class="num">${r}</th>`).join("")}</tr></thead><tbody>` +
     ex.prazos.map((p, k) => `<tr><td>${k + 1}º bimestre</td><td class="num">${fd(p.data)}<span class="disp">${p.calculado ? "calculado" : "oficial"}</span></td>
       ${cols.map(([c]) => `<td class="num">${ag.tx[k][c] ? fmtInt.format(ag.tx[k][c]) : "-"}</td>`).join("")}</tr>`).join("") + "</tbody>";
@@ -566,6 +569,7 @@ function montarPDF(rows, unico, det) {
   const pend = [];
   const nConf = S.cat.obrigacoes.filter((o) => o.conferir).length;
   if (nConf) pend.push(`${nConf} referência(s) legal(is) marcadas [conferir] na fonte oficial.`);
+  if (S.cat.base_aberta_so_aviso) pend.push("Transmissões: base de dados abertos do SIOPE (FNDE), atualizada com atraso em relação ao sistema SIOPE. Ausência nela após o prazo = atenção, a conferir no relatório do SIOPE.");
   if (ex.prazos.some((p) => p.calculado)) pend.push(`Prazos de transmissão calculados pela regra do ${S.cat.prazo_regra.dispositivo} [conferir cronograma oficial do FNDE].`);
   if (!ex.vaat_lista_oficial) pend.push(S.cat.vaat_nota);
   if (pend.length) tabela(["Conferir antes de usar em prestação de contas"], pend.map((p) => [p]), { headStyles: { fillColor: [251, 239, 214], textColor: [138, 90, 0], fontStyle: "bold" } });
@@ -575,7 +579,7 @@ function montarPDF(rows, unico, det) {
   tabela(["Entes", "Irregulares", "Atenção", "Regulares", "Sem dados", `${bim.bimestre}º bim. transmitido`],
     [[fmtInt.format(ag.total), `${fmtInt.format(ag.sg.irregular)} (${pct(ag.sg.irregular, ag.total)})`, `${fmtInt.format(ag.sg.atencao)} (${pct(ag.sg.atencao, ag.total)})`,
       `${fmtInt.format(ag.sg.regular)} (${pct(ag.sg.regular, ag.total)})`, fmtInt.format(ag.sg.sem_info),
-      `${fmtInt.format((tb.no_prazo || 0) + (tb.fora_prazo || 0) + (tb.sem_data || 0))} (${fmtInt.format(tb.atrasado || 0)} vencidos sem envio)`]]);
+      `${fmtInt.format((tb.no_prazo || 0) + (tb.fora_prazo || 0) + (tb.sem_data || 0))} (${fmtInt.format(tb.atrasado || 0)} sem registro após o prazo)`]]);
 
   if (bim.todos) {
     titulo("Evolução por bimestre");
@@ -619,7 +623,7 @@ function montarPDF(rows, unico, det) {
       return [`${k + 1}º bimestre`, `${fd(p.data)} (${p.calculado ? "calculado" : "oficial"})`, fd(t[0]), t[3] ? `${t[3]}${t[2] ? " (retificada)" : ""}` : "-", S_(t[1])];
     }), pintar([4]));
   } else {
-    const cs = [["no_prazo", "No prazo"], ["fora_prazo", "Após o prazo"], ["atrasado", "Vencido sem envio"], ["aguardando", "Dentro do prazo"], ["em_curso", "Em curso"]];
+    const cs = [["no_prazo", "No prazo"], ["fora_prazo", "Após o prazo"], ["atrasado", "Sem registro, prazo vencido"], ["aguardando", "Dentro do prazo"], ["em_curso", "Em curso"]];
     tabela(["Bimestre", "Prazo", ...cs.map((c) => c[1])], ex.prazos.map((p, k) => [`${k + 1}º bimestre`, `${fd(p.data)} (${p.calculado ? "calculado" : "oficial"})`, ...cs.map(([c]) => (ag.tx[k][c] ? fmtInt.format(ag.tx[k][c]) : "-"))]));
   }
 
@@ -627,7 +631,7 @@ function montarPDF(rows, unico, det) {
     const ufs = Object.entries(ag.uf).sort((a, b) => b[1].irregular / b[1].n - a[1].irregular / a[1].n);
     if (ufs.length > 1) {
       titulo("Comparativo por UF");
-      tabela(["UF", "Entes", "Irregulares", "Atenção", "Vencido sem envio", "Remun. 70% descumpr.", "MDE 25% descumpr.", "Sem dados"],
+      tabela(["UF", "Entes", "Irregulares", "Atenção", "Sem registro, prazo vencido", "Remun. 70% descumpr.", "MDE 25% descumpr.", "Sem dados"],
         ufs.map(([uf, u]) => [uf, fmtInt.format(u.n), `${fmtInt.format(u.irregular)} (${pct(u.irregular, u.n)})`, fmtInt.format(u.atencao), fmtInt.format(u.vencido), fmtInt.format(u.rem), fmtInt.format(u.mde), fmtInt.format(u.sem_info)]));
     }
     const irr = ordenar(rows.filter((r) => r.sg === "irregular"));

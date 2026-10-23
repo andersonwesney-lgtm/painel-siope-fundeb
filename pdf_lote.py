@@ -76,6 +76,9 @@ def alerta_info(cat: dict, cod: str) -> dict:
         o = next(x for x in cat["obrigacoes"] if x["id"] == ref)
         t = f"{o['titulo']}: descumprida" if nivel == "c" else f"{o['titulo']}: fora da regra até o bimestre"
         return {"nivel": "critico" if nivel == "c" else "atencao", "titulo": t, "base": o["dispositivo"]}
+    if tipo == "s":
+        return {"nivel": "atencao", "titulo": f"{ref}º bimestre sem registro na base aberta do SIOPE, prazo vencido",
+                "base": cat["prazo_regra"]["dispositivo"]}
     t = (f"{ref}º bimestre não transmitido, prazo vencido" if nivel == "c"
          else f"{ref}º bimestre transmitido após o prazo")
     return {"nivel": "critico" if nivel == "c" else "atencao", "titulo": t, "base": cat["prazo_regra"]["dispositivo"]}
@@ -99,7 +102,7 @@ def agregar(cat: dict, rows: list[dict]) -> dict:
         u["n"] += 1
         for k in ("irregular", "atencao", "sem_info"):
             u[k] += r["sg"] == k
-        u["vencido"] += any(c.startswith("c:t:") for c in r["al"])
+        u["vencido"] += any(c.startswith(("c:t:", "a:s:")) for c in r["al"])
         u["rem"] += r["s"].get("remuneracao_70") == "descumprida"
         u["mde"] += r["s"].get("mde_25") == "descumprida"
     return a
@@ -168,7 +171,7 @@ def gerar(d: Dados, ano: int, b: int, rows: list[dict], recorte: str, ex: dict, 
                       P(f"{fmt_int(sg['atencao'])} ({pct(sg['atencao'], ag['total'])})"),
                       P(f"{fmt_int(sg['regular'])} ({pct(sg['regular'], ag['total'])})"), P(fmt_int(sg["sem_info"])),
                       P(f"{fmt_int(tb.get('no_prazo', 0) + tb.get('fora_prazo', 0) + tb.get('sem_data', 0))} "
-                        f"({fmt_int(tb.get('atrasado', 0))} vencidos sem envio)")]], [W / 6] * 6))
+                        f"({fmt_int(tb.get('atrasado', 0))} sem registro após o prazo)")]], [W / 6] * 6))
 
     h.append(Paragraph("Cumprimento das obrigações", st["h2"]))
     h.append(P("Valores acumulados até o bimestre de referência. Obrigações anuais se fecham no 6º bimestre. "
@@ -202,7 +205,7 @@ def gerar(d: Dados, ano: int, b: int, rows: list[dict], recorte: str, ex: dict, 
 
     h.append(Paragraph("Prazos de transmissão ao SIOPE", st["h2"]))
     h.append(P(f"{cat['prazo_regra']['dispositivo']}. Consequência do atraso: {cat['prazo_regra']['consequencia']}", "pm"))
-    cs = [("no_prazo", "No prazo"), ("fora_prazo", "Após o prazo"), ("atrasado", "Vencido sem envio"),
+    cs = [("no_prazo", "No prazo"), ("fora_prazo", "Após o prazo"), ("atrasado", "Sem registro, prazo vencido"),
           ("aguardando", "Dentro do prazo"), ("em_curso", "Em curso")]
     h.append(tabela(["Bimestre", "Prazo"] + [r for _, r in cs],
                     [[P(f"{k + 1}º bimestre"), P(f"{fd(p['data'])} ({'calculado' if p['calculado'] else 'oficial'})")] +

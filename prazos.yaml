@@ -26,6 +26,13 @@ regra_bimestral:
 #   true:  todo envio após o prazo gera alerta de atenção.
 envio_apos_prazo_gera_atencao: false
 
+# Ente que não aparece na base de dados abertos do SIOPE (API do FNDE) depois do prazo.
+# A base aberta é atualizada com atraso em relação ao sistema SIOPE: um ente pode já ter
+# transmitido e ainda não constar nela (ex.: Capela/AL, 4º bim. 2026, em 23/10/2026).
+#   atencao: alerta de atenção "Sem registro na base aberta, prazo vencido" (padrão).
+#   critico: trata como "Não transmitido, prazo vencido" e torna o ente irregular.
+ausente_na_base_aberta: atencao
+
 # Dados do exercício (6º bimestre) exigidos para habilitação à
 # complementação-VAAT: até 31 de agosto do exercício posterior.
 regra_habilitacao_vaat:

@@ -237,6 +237,19 @@ def transmissao(i: str, uf: str, p: dict, prazo: dict, ano: int, b: int, hoje: d
     return [d["data"], sit, d["reti"], d["recibo"]]
 
 
+def base_aberta_so_aviso(cfg) -> bool:
+    """Ente ausente da base de dados abertos após o prazo: atenção (padrão) ou crítico. A base aberta do
+    FNDE chega com atraso em relação ao SIOPE, então a ausência nela não prova que o ente não transmitiu."""
+    return str(cfg.prazos.get("ausente_na_base_aberta", "atencao")).lower() != "critico"
+
+
+def situacoes(cfg) -> dict:
+    sits = {k: {"rotulo": v[0], "nivel": v[1]} for k, v in SITUACOES.items()}
+    if base_aberta_so_aviso(cfg):
+        sits["atrasado"] = {"rotulo": "Sem registro na base aberta, prazo vencido", "nivel": "atencao"}
+    return sits
+
+
 # ----------------------------------------------------------- saída ----
 
 def _hash(caminho: Path) -> str:
@@ -276,7 +289,8 @@ def catalogo(cfg: Config, nomes: dict) -> dict:
     return {
         "painel": cfg.painel,
         "obrigacoes": obrig,
-        "situacoes": {k: {"rotulo": v[0], "nivel": v[1]} for k, v in SITUACOES.items()},
+        "situacoes": situacoes(cfg),
+        "base_aberta_so_aviso": base_aberta_so_aviso(cfg),
         "indicadores": nomes,
         "grupos": cfg.grupos,
         "documentais": [{k: " ".join(str(v).split()) for k, v in d.items()} for d in cfg.documentais],
@@ -366,6 +380,7 @@ def processar(cfg: Config, saida: Path, hoje: date, log=print, demo: str | None 
     """Gera site/dados/: catalogo.json, entes.json, <ano>/b<b>.json, <ano>/b<b>/<UF>.json, manifest.json."""
     # Envio após o prazo calculado: só informativo, salvo se prazos.yaml pedir o contrário.
     atraso_alerta = bool(cfg.prazos.get("envio_apos_prazo_gera_atencao", False))
+    ausente_critico = not base_aberta_so_aviso(cfg)
     dados = saida / "dados"
     anos = cfg.exercicios(hoje)
     periodos = {}
@@ -427,7 +442,7 @@ def processar(cfg: Config, saida: Path, hoje: date, log=print, demo: str | None 
                 for bb in range(1, b + 1):
                     st = tx[i][bb - 1][1]
                     if st == "atrasado":
-                        alertas.append(f"c:t:{bb}")
+                        alertas.append(f"c:t:{bb}" if ausente_critico else f"a:s:{bb}")
                     elif st == "fora_prazo" and atraso_alerta:
                         alertas.append(f"a:t:{bb}")
                 nc = sum(1 for a in alertas if a.startswith("c:"))

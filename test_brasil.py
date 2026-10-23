@@ -86,11 +86,16 @@ def test_processamento_e_nao_transmissao(projeto):
     assert "530010" not in linhas  # Brasília: o DF declara como ente distrital
     a, b_ = linhas["149001"], linhas["149002"]
     assert a[ix["s.remuneracao_70"]] == "parcial_abaixo" and a[ix["tx6"]].startswith("nnn")
-    assert b_[ix["sg"]] == "irregular" and "c:t:1" in b_[ix["al"]]  # nunca transmitiu
+    assert b_[ix["sg"]] == "atencao" and "a:s:1" in b_[ix["al"]]  # sem registro na base aberta: atenção
     assert linhas["UF-SP"][ix["tx6"]][0] == "x"  # SP não consultada: não conclui atraso
     ex = m["exercicios"][0]
     assert ex["bimestres"][-1]["bimestre"] == 4 and ex["bimestres"][-1]["entes_com_indicadores"] == 0
     assert ex["bimestre_padrao"] == 4  # nenhum bimestre com metade dos entes: fica no mais recente
+    cfg.prazos["ausente_na_base_aberta"] = "critico"
+    processa.processar(cfg, projeto / "site", HOJE)
+    dados = json.loads((projeto / "site" / "dados" / "2026" / "b3.json").read_text(encoding="utf-8"))
+    linhas = {l[ix["id"]]: l for l in dados["linhas"]}
+    assert linhas["149002"][ix["sg"]] == "irregular" and "c:t:1" in linhas["149002"][ix["al"]]
 
 
 def test_site_completo_e_pdf_com_mesmo_identificador(projeto):
