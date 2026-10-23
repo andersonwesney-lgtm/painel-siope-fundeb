@@ -129,7 +129,7 @@ def carregar_periodo(cfg: Config, ano: int, b: int, com_tc: bool = True) -> dict
     n_recibos = 0
     if cfg.recibos.get("ativo", True):
         for i, r in recibos.por_periodo(recibos.carregar(cfg), ano, b).items():
-            uf = i[3:] if i.startswith("UF-") else None
+            uf = i[3:] if i.startswith("UF-") else uf_do_municipio(i)
             atual = dg.get(i)
             if atual is not None and (atual["data"] or "") >= r["transmitido_em"][:10]:
                 continue
@@ -145,9 +145,7 @@ def carregar_periodo(cfg: Config, ano: int, b: int, com_tc: bool = True) -> dict
         for i, r in indicadores_tc.por_periodo(indicadores_tc.carregar(cfg), ano, b).items():
             if not r["ind"]:
                 continue
-            uf = i[3:] if i.startswith("UF-") else (dg.get(i) or {}).get("uf") or (ind.get(i) or {}).get("_uf")
-            if uf is None:
-                continue
+            uf = i[3:] if i.startswith("UF-") else uf_do_municipio(i)
             atual = ind.setdefault(i, {"_nome": (dg.get(i) or {}).get("nome"), "_uf": uf})
             atual.update(r["ind"])
             atual["_fonte"] = "tc"

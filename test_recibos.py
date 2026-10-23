@@ -241,6 +241,24 @@ def test_capela_ganha_indicadores_sem_duplicar(projeto, monkeypatch):
     assert m["exercicios"][0]["bimestres"][-1]["via_tc"] == 1
 
 
+def test_tc_vale_para_quem_so_esta_nos_recibos(projeto, monkeypatch):
+    """Sem nenhuma linha na base aberta (nem indicador): a UF vem do código IBGE."""
+    cfg = projeto
+    for b in (1, 2, 3, 4):
+        arq = coleta.caminho(cfg, 2026, b, "AL", "indicadores")
+        bruto = coleta.ler_json_gz(arq)
+        bruto["linhas"] = [l for l in bruto["linhas"] if l[1] != 270170]
+        coleta.gravar_json_gz(arq, bruto)
+    cfg.recibos.update(pausa_entre_consultas_s=0, incluir_estados=False)
+    monkeypatch.setattr(recibos, "Cliente", lambda *a, **k: ClienteFalso({"270170": PAGINA}))
+    recibos.atualizar(cfg, HOJE, log=lambda *_: None)
+    cfg.indicadores_tc.update(pausa_entre_consultas_s=0, incluir_estados=False)
+    monkeypatch.setattr(indicadores_tc, "Cliente", lambda *a, **k: TcFalso({"270170": resposta_tc()}))
+    indicadores_tc.atualizar(cfg, HOJE, log=lambda *_: None)
+    p = processa.carregar_periodo(cfg, 2026, 4)
+    assert p["dg"]["270170"]["uf"] == "AL" and p["ind"]["270170"]["1.2"] == 58.46 and p["n_tc"] == 1
+
+
 def test_webservice_tc_mudou_mantem_o_que_havia(projeto, monkeypatch):
     cfg = projeto
     cfg.recibos["ativo"] = False
