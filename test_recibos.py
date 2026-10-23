@@ -159,7 +159,7 @@ def test_rotina_nao_publica_site_suspeito(projeto, monkeypatch):
 
     # queda brusca de entes com dados em relação à última publicação -> não publica
     pub = json.loads((cfg.dir_estado / "ultima_publicacao.json").read_text(encoding="utf-8"))
-    pub["entes_com_dados"] = {k: 1000 for k in pub["entes_com_dados"]}
-    assert pub["entes_com_dados"]
+    pub["entes_com_indicadores"] = {k: 1000 for k in pub["entes_com_indicadores"]}
+    assert pub["entes_com_indicadores"]
     (cfg.dir_estado / "ultima_publicacao.json").write_text(json.dumps(pub), encoding="utf-8")
     assert rotina.executar(cfg, saida, HOJE, construir, log=lambda *_: None) == 1

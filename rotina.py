@@ -43,10 +43,11 @@ def validar_site(cfg: Config, saida: Path, anterior: dict | None) -> list[str]:
     atual = resumo_publicacao(man)
     if anterior:
         queda = float(v.get("queda_maxima_entes_com_dados", 0.2))
-        for k, n_ant in anterior.get("entes_com_dados", {}).items():
-            n = atual["entes_com_dados"].get(k, 0)
+        # só compara a mesma medida (publicações antigas guardavam outra contagem)
+        for k, n_ant in anterior.get("entes_com_indicadores", {}).items():
+            n = atual["entes_com_indicadores"].get(k, 0)
             if n_ant >= 100 and n < n_ant * (1 - queda):
-                erros.append(f"{k}: entes com dados caiu de {n_ant} para {n} (queda maior que {queda:.0%})")
+                erros.append(f"{k}: entes com indicadores caiu de {n_ant} para {n} (queda maior que {queda:.0%})")
     return erros
 
 
@@ -66,7 +67,7 @@ def resumo_publicacao(man: dict) -> dict:
             if b.get("todos"):
                 continue
             r[f"{ex['ano']}-b{b['bimestre']}"] = b.get("entes_com_indicadores", 0)
-    return {"entes_com_dados": r}
+    return {"entes_com_indicadores": r}
 
 
 def executar(cfg: Config, saida: Path, hoje: date, construir, log=print) -> int:

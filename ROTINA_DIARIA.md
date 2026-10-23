@@ -12,7 +12,7 @@
 4. **Validação**:
    - o catálogo precisa ter pelo menos 5.500 municípios;
    - todos os arquivos dos bimestres precisam existir;
-   - nenhum bimestre pode perder mais de 20% dos entes com dados em relação à última publicação.
+   - nenhum bimestre pode perder mais de 20% dos entes com indicadores em relação à última publicação.
 5. **Publicação** no GitHub Pages, só se tudo acima passou.
 
 ## Por que não o relatório "Municípios transmitidos por UF"
