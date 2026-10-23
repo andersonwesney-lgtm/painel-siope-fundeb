@@ -4,26 +4,5 @@ jobs:
   sondar:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          B=https://www.fnde.gov.br/olinda-ide/servico/DADOS_ABERTOS_SIOPE/versao/v1/odata
-          q() { curl -sS -G "$B/$1(Ano_Consulta=@A,Num_Peri=@P,Sig_UF=@U)" --data-urlencode "@A=$2" --data-urlencode "@P=$3" --data-urlencode "@U='$4'" --data-urlencode '$format=json' --data-urlencode '$top=100000' ${5:+--data-urlencode "\$select=$5"}; }
-          echo "== contagem AL por recurso 2026 b4 / b3, e Capela"
-          for r in Dados_Gerais_Siope Dados_Gerais_Siope_Dados_Responsaveis Indicadores_Siope Informacoes_Complementares_Siope; do
-            for p in 3 4; do
-              q $r 2026 $p AL COD_MUNI,NOM_MUNI > o.json
-              python3 -c "import json;v=json.load(open('o.json'))['value'];m={x['COD_MUNI'] for x in v};print('$r','b$p','linhas',len(v),'entes',len(m),'Capela',270170 in m or '270170' in m)"
-            done
-          done
-          echo "== max DAT_DECL por bimestre 2026 (todas UFs AL,SP,BA)"
-          for p in 1 2 3 4; do for u in AL SP BA; do q Dados_Gerais_Siope 2026 $p $u NOM_MUNI,DAT_DECL > o.json; python3 -c "import json;v=json.load(open('o.json'))['value'];d=sorted(x['DAT_DECL'] or '' for x in v);print('b$p','$u',len(v),d[-1][:10] if d else None)"; done; done
-          echo "== catálogo olinda"
-          curl -sS "https://www.fnde.gov.br/olinda-ide/servico" | sed 's/<[^>]*>/ /g' | tr -s ' \n' | grep -i -oE '[A-Za-z_]*SIOPE[A-Za-z_]*' | sort -u | head
-          curl -sS "https://www.fnde.gov.br/olinda-ide/servico/DADOS_ABERTOS_SIOPE" | sed 's/<[^>]*>/ /g' | tr -s ' \n' | head -c 2500; echo
-          echo "== CKAN FNDE"
-          for u in "https://www.fnde.gov.br/dadosabertos/api/3/action/package_search?q=siope" "https://dados.gov.br/api/publico/conjuntos-dados?nomeConjuntoDados=siope" ; do echo "-- $u"; curl -sSL -m 30 "$u" | head -c 1500; echo; done
-          echo "== paginas SIOPE com/sem captcha"
-          for pg in relatoriosMunicipais.jsp municipiosTransmitidosPorUF.do situacaoCumprimentoIndicadores.do consultarDadosGeraisMunicipio.do relatorioTransmissao.do; do
-            curl -sSL -m 30 "https://www.fnde.gov.br/siope/$pg" -o p.html; echo "$pg $(wc -c <p.html) captcha=$(grep -ci recaptcha p.html)"
-          done
-          curl -sSL "https://www.fnde.gov.br/siope/relatoriosMunicipais.jsp" | grep -oiE 'href="[^"]+\.(do|jsp)[^"]*"' | sort -u > links.txt; cat links.txt
-          for l in $(cut -d'"' -f2 links.txt | head -40); do u=$l; case $u in http*) ;; *) u="https://www.fnde.gov.br/siope/$u";; esac; c=$(curl -sSL -m 20 "$u" | grep -ci recaptcha); echo "captcha=$c $u"; done
+      - uses: actions/checkout@v4
+      - run: python3 sondar.py
