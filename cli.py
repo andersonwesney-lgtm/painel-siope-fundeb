@@ -2,7 +2,10 @@
 
   python -m siope_brasil coletar      baixa da API do SIOPE (todas as UFs) e a lista do IBGE
   python -m siope_brasil gerar        processa, monta site/ (painel + dados) e os PDFs em lote
-  python -m siope_brasil tudo         coletar + gerar (usado no GitHub Actions)
+  python -m siope_brasil tudo         coletar + gerar
+  python -m siope_brasil recibos      consulta só os Recibos de Transmissão que faltam (sem captcha)
+  python -m siope_brasil diario       rotina diária: API + recibos + site + validação + registro
+                                      (código de saída 1 = não publicar; usado no GitHub Actions)
   python -m siope_brasil pdf --uf MG  um PDF em lote sob demanda (Brasil, UF), a partir de site/
   python -m siope_brasil servir       abre o painel em http://localhost:8000
 """
@@ -14,7 +17,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import coleta, config, pdf_lote, processa
+from . import coleta, config, pdf_lote, processa, recibos, rotina
 from .territorio import SIGLAS
 
 
@@ -42,6 +45,10 @@ def main(argv: list[str] | None = None) -> int:
     g = sub.add_parser("gerar")
     g.add_argument("--saida", default="site")
     g.add_argument("--sem-pdf", action="store_true", help="não gera os PDFs em lote")
+    sub.add_parser("recibos")
+    d = sub.add_parser("diario")
+    d.add_argument("--saida", default="site")
+    d.add_argument("--sem-pdf", action="store_true")
     t = sub.add_parser("tudo")
     t.add_argument("--saida", default="site")
     p = sub.add_parser("pdf")
@@ -60,6 +67,12 @@ def main(argv: list[str] | None = None) -> int:
     saida = Path(getattr(a, "saida", "site"))
     saida = saida if saida.is_absolute() else cfg.raiz / saida
 
+    if a.cmd == "recibos":
+        r = recibos.atualizar(cfg, hoje)
+        return 1 if r["status"] == "falha" else 0
+    if a.cmd == "diario":
+        return rotina.executar(cfg, saida, hoje,
+                               lambda s: construir_site(cfg, s, hoje, lote=not a.sem_pdf))
     if a.cmd in ("coletar", "tudo"):
         anos = getattr(a, "anos", None) or cfg.exercicios(hoje)
         print(f"Coletando SIOPE: exercícios {anos}...")

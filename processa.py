@@ -14,7 +14,7 @@ import json
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from . import coleta
+from . import coleta, recibos
 from .config import Config
 from .territorio import SIGLAS, SIGLA_PARA_COD, UFS, id_estado, uf_do_municipio
 
@@ -123,8 +123,22 @@ def carregar_periodo(cfg: Config, ano: int, b: int) -> dict:
                 if atual is None or (data or "") > (atual["data"] or ""):
                     dg[i] = {"data": data, "reti": bool(reti), "recibo": str(recibo or ""), "pop": pop,
                              "nome": nom, "uf": uf}
+    # Recibos do SIOPE (página pública) completam a base aberta, que chega com atraso. Só para UFs
+    # cuja base aberta foi lida: assim a ausência de recibo continua comparável entre entes.
+    n_recibos = 0
+    if cfg.recibos.get("ativo", True):
+        for i, r in recibos.por_periodo(recibos.carregar(cfg), ano, b).items():
+            uf = i[3:] if i.startswith("UF-") else None
+            atual = dg.get(i)
+            if atual is not None and (atual["data"] or "") >= r["transmitido_em"][:10]:
+                continue
+            if atual is None:
+                n_recibos += 1
+            dg[i] = {"data": r["transmitido_em"][:10], "reti": r["retificadora"], "recibo": r["recibo"],
+                     "pop": (atual or {}).get("pop"), "nome": (atual or {}).get("nome"),
+                     "uf": (atual or {}).get("uf") or uf, "fonte": "recibo"}
     return {"ind": ind, "dg": dg, "nomes": nomes, "ufs_ind": ufs_ind, "ufs_dg": ufs_dg,
-            "ultima_coleta": max(coletas) if coletas else None}
+            "ultima_coleta": max(coletas) if coletas else None, "n_recibos": n_recibos}
 
 
 def catalogo_entes(cfg: Config, periodos: list[dict]) -> dict:
@@ -467,7 +481,7 @@ def processar(cfg: Config, saida: Path, hoje: date, log=print, demo: str | None 
                          "arquivo": f"dados/{ano}/b{b}.json", "sha256": h, "ufs": hashes_uf,
                          "ufs_com_dados": sorted(p["ufs_ind"]), "contagem": contagem,
                          "entes_com_indicadores": com_indicadores, "cobertura": round(com_indicadores / len(ids), 4),
-                         "ultima_coleta": p["ultima_coleta"]})
+                         "ultima_coleta": p["ultima_coleta"], "via_recibo": p.get("n_recibos", 0)})
             log(f"  {ano} {b}º bim.: {len(linhas)} entes · irregulares {contagem['irregular']} · "
                 f"atenção {contagem['atencao']} · regulares {contagem['regular']} · sem dados {contagem['sem_info']}")
         todos = _consolidar(dados, ano, hoje, prazos, bims, linhas_b, colunas, obrig, log) if len(bims) > 1 else None

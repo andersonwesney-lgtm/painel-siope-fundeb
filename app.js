@@ -294,7 +294,7 @@ function renderConferir(ex) {
   const n = S.cat.obrigacoes.filter((o) => o.conferir).length;
   const itens = [];
   if (n) itens.push(`${n} referência(s) legal(is) marcadas para conferência na fonte oficial (config/obrigacoes.yaml).`);
-  if (S.cat.base_aberta_so_aviso) itens.push("Transmissões vêm da base de dados abertos do SIOPE (FNDE), que é atualizada com atraso em relação ao sistema SIOPE. Ente sem registro nela após o prazo aparece em atenção, não como irregular: confira no relatório de municípios transmitidos do SIOPE.");
+  if (S.cat.base_aberta_so_aviso) itens.push("Transmissões: base de dados abertos do SIOPE (FNDE), completada diariamente pela página pública \"Recibos de Transmissão\" do SIOPE, porque a base aberta chega com atraso. Ente sem registro em nenhuma das duas após o prazo aparece em atenção, não como irregular.");
   if (ex.prazos.some((p) => p.calculado)) itens.push(`Prazos de transmissão calculados pela regra do ${esc(S.cat.prazo_regra.dispositivo)}; cadastre o cronograma oficial do FNDE em config/prazos.yaml, se houver.`);
   if (!ex.vaat_lista_oficial) itens.push(esc(S.cat.vaat_nota));
   $("conferir").innerHTML = itens.length ? `<strong>Conferir antes de usar em prestação de contas.</strong><ul>${itens.map((i) => `<li>${i}</li>`).join("")}</ul>` : "";
@@ -516,7 +516,8 @@ function renderDocs() {
 
 function renderRodape() {
   const { bim } = S.periodo, fl = S.cat.fontes_legais;
-  $("rodape").innerHTML = `<span>Fonte: dados abertos do SIOPE/FNDE (API Olinda) e lista de municípios do IBGE. Situações calculadas por siope_brasil/processa.py; este painel só filtra e conta.</span>
+  const vr = bim.via_recibo ? ` ${fmtInt.format(bim.via_recibo)} transmissão(ões) deste bimestre ainda ausentes da base aberta foram confirmadas na página pública "Recibos de Transmissão" do SIOPE.` : "";
+  $("rodape").innerHTML = `<span>Fonte: dados abertos do SIOPE/FNDE (API Olinda), Recibos de Transmissão do SIOPE e lista de municípios do IBGE.${vr} Situações calculadas por siope_brasil/processa.py; este painel só filtra e conta.</span>
     <span>Normas: <a href="${esc(fl.lei_14113)}" target="_blank" rel="noopener">Lei 14.113/2020</a> · <a href="${esc(fl.cf)}" target="_blank" rel="noopener">Constituição Federal</a>.</span>
     <span>Identificador dos dados deste bimestre (SHA-256 de ${esc(bim.arquivo)}): <span class="mono" style="word-break:break-all">${bim.sha256}</span>. Os PDFs deste recorte trazem o mesmo identificador.</span>
     <span>Gerado em ${esc(S.manifest.gerado_em)}.</span>`;

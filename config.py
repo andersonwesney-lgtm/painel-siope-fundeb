@@ -23,6 +23,8 @@ class Config:
     rotulos_curtos: dict
     documentais: list[dict]
     prazos: dict
+    recibos: dict
+    validacao: dict
 
     def exercicios(self, hoje: date) -> list[int]:
         lista = self.exercicios_cfg.get("lista") or []
@@ -34,6 +36,11 @@ class Config:
     @property
     def dir_brutos(self) -> Path:
         return self.raiz / "dados" / "brutos"
+
+    @property
+    def dir_estado(self) -> Path:
+        """Estado que precisa durar entre execuções (recibos, registro). No GitHub Actions é o ramo "estado"."""
+        return self.raiz / "estado"
 
     @property
     def dir_importados(self) -> Path:
@@ -61,4 +68,6 @@ def carregar(raiz: Path | None = None) -> Config:
         rotulos_curtos=o.get("rotulos_curtos", {}),
         documentais=o.get("obrigacoes_documentais", []),
         prazos=_ler(raiz / "config" / "prazos.yaml"),
+        recibos=p.get("recibos", {}),
+        validacao=p.get("validacao", {}),
     )

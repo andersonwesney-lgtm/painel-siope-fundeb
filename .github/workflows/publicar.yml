@@ -1,22 +1,29 @@
-# Coleta nacional do SIOPE, processamento, PDFs em lote e publicação no GitHub Pages.
-# Roda toda segunda-feira, a cada alteração de configuração e pelo botão "Run workflow".
+# Atualização DIÁRIA do painel: API de dados abertos do SIOPE + Recibos de Transmissão do SIOPE
+# (página pública, sem captcha), processamento, validação, PDFs em lote e publicação no GitHub Pages.
+#
+# Garantias:
+#  - se a coleta ou a validação falhar, NÃO publica: o painel no ar continua o da última execução válida;
+#  - cada execução fica registrada no ramo "estado" (estado/execucoes.jsonl) e no painel (dados/execucoes.json);
+#  - falha ou aviso abre (ou atualiza) uma issue "Atualização do painel" -> o GitHub manda e-mail ao dono;
+#    se os segredos TELEGRAM_TOKEN e TELEGRAM_CHAT_ID existirem, avisa também no Telegram.
 name: Publicar painel SIOPE
 
 on:
   schedule:
-    - cron: "0 8 * * 1"   # segunda-feira, 05:00 em Brasília
+    - cron: "0 9 * * *"   # todo dia, 06:00 em Brasília
   workflow_dispatch:
     inputs:
       forcar:
-        description: "Baixar de novo todos os exercícios (ignora o que já está guardado)"
+        description: "Baixar de novo todos os exercícios da API (ignora o que já está guardado)"
         type: boolean
         default: false
   push:
     branches: [main]
-    paths: ["config/**", "dados/importados/**", "siope_brasil/**", "web/**"]
+    paths: ["config/**", "dados/importados/**", "siope_brasil/**", "web/**", "*.py", "*.yaml", "*.js", "*.css", "*.html"]
 
 permissions:
-  contents: read
+  contents: write   # gravar o ramo "estado" (recibos e registro de execuções)
+  issues: write     # avisar falhas
   pages: write
   id-token: write
 
@@ -27,7 +34,7 @@ concurrency:
 jobs:
   gerar:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@v4
       # Arquivos enviados pelo navegador podem chegar soltos na raiz do repositório.
@@ -36,10 +43,9 @@ jobs:
         run: |
           mover() { d="$1"; shift; mkdir -p "$d"; for f in "$@"; do if [ -f "$f" ]; then mv "$f" "$d/"; fi; done; }
           mover config obrigacoes.yaml painel.yaml prazos.yaml
-          mover siope_brasil __init__.py __main__.py cli.py coleta.py config.py pdf_lote.py processa.py territorio.py
-          mover tests sintetico.py test_brasil.py
+          mover siope_brasil __init__.py __main__.py cli.py coleta.py config.py pdf_lote.py processa.py territorio.py recibos.py rotina.py
+          mover tests sintetico.py test_brasil.py test_recibos.py
           mover web app.js estilo.css index.html
-          find . -path ./.git -prune -o -type f -print | sort
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -47,30 +53,98 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Testes
         run: python -m pytest -q
-      # Os dados brutos ficam guardados entre execuções: só os exercícios recentes
-      # são baixados de novo (ver coleta.recoletar_ultimos_exercicios).
-      - name: Restaurar dados já coletados
+
+      # Estado que dura entre execuções (recibos já confirmados e registro). Fica no ramo "estado".
+      - name: Recuperar estado
+        env:
+          REPO: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
+        run: |
+          if git ls-remote --exit-code --heads "$REPO" estado >/dev/null; then
+            git clone --quiet --depth 1 --branch estado "$REPO" estado
+          else
+            mkdir estado && cd estado && git init --quiet -b estado && git remote add origin "$REPO"
+          fi
+      - name: Restaurar dados brutos da API já coletados
         uses: actions/cache/restore@v4
         with:
           path: dados/brutos
           key: brutos-${{ github.run_id }}
           restore-keys: brutos-
-      - name: Coletar SIOPE (todas as UFs)
-        run: python -m siope_brasil coletar ${{ inputs.forcar && '--forcar' || '' }}
-      - name: Guardar dados coletados
+
+      - name: Rotina diária (API + recibos + site + validação)
+        id: rotina
+        run: |
+          set +e
+          if [ "${{ inputs.forcar }}" = "true" ]; then python -m siope_brasil coletar --forcar; fi
+          python -m siope_brasil diario
+          echo "codigo=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Guardar dados brutos
         if: always()
         uses: actions/cache/save@v4
         with:
           path: dados/brutos
           key: brutos-${{ github.run_id }}
-      - name: Processar, montar o painel e gerar PDFs em lote
-        run: python -m siope_brasil gerar
-      - name: Arquivar dados brutos desta execução (90 dias)
+      - name: Guardar estado e registro da execução
+        if: always()
+        run: |
+          cd estado
+          git config user.name "painel-siope-bot"
+          git config user.email "painel-siope-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "estado sem mudanças"; exit 0; fi
+          st=$(python3 -c "import json;print(json.load(open('ultimo_status.json'))['status'])" 2>/dev/null || echo "?")
+          git commit --quiet -m "Execução $(date -u +%Y-%m-%dT%H:%MZ): $st"
+          for i in 1 2 3; do git push --quiet origin estado && break; sleep $((i*5)); done
+
+      - name: Avisar (issue e Telegram)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          f=estado/ultimo_status.json
+          if [ -f "$f" ]; then
+            st=$(jq -r .status "$f"); erro=$(jq -r '.erro // ""' "$f"); avisos=$(jq -r '.avisos | join("\n- ")' "$f")
+          else
+            st=falha; erro="a rotina não chegou a registrar a execução (erro antes da coleta)"; avisos=""
+          fi
+          [ "${{ steps.rotina.outputs.codigo }}" = "0" ] || st=falha
+          titulo="Atualização do painel"
+          num=$(gh issue list --state open --label atualizacao-painel --json number -q '.[0].number' 2>/dev/null)
+          if [ "$st" = "ok" ]; then
+            if [ -n "$num" ]; then gh issue close "$num" --comment "Voltou ao normal na execução $RUN_URL"; fi
+            exit 0
+          fi
+          if [ "$st" = "falha" ]; then
+            msg="❌ A atualização diária FALHOU e o painel NÃO foi republicado (continua no ar a última versão válida).%0A%0AMotivo: $erro"
+          else
+            msg="⚠️ Painel atualizado, com avisos:%0A- $avisos"
+          fi
+          corpo="$(printf '%s' "$msg" | sed 's/%0A/\n/g')
+
+          Execução: $RUN_URL"
+          gh label create atualizacao-painel --color B60205 --description "Avisos da rotina diária" 2>/dev/null || true
+          if [ -n "$num" ]; then gh issue comment "$num" --body "$corpo"
+          else gh issue create --title "$titulo" --label atualizacao-painel --body "$corpo"; fi
+          if [ -n "$TELEGRAM_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            curl -sS -m 30 "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" \
+              --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=$corpo" >/dev/null || true
+          fi
+
+      - name: Barrar publicação se a rotina falhou
+        if: steps.rotina.outputs.codigo != '0'
+        run: |
+          echo "::error::Rotina falhou: o painel publicado continua o da última execução válida."
+          exit 1
+      - name: Arquivar dados brutos desta execução (30 dias)
         uses: actions/upload-artifact@v4
         with:
           name: dados-brutos-${{ github.run_id }}
           path: dados/brutos
-          retention-days: 90
+          retention-days: 30
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
