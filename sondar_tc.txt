@@ -1,0 +1,18 @@
+import json, urllib.request, urllib.parse
+B = "https://www.fnde.gov.br/webservices/siope/tc/"
+def get(nome, **p):
+    u = B + nome + "?" + urllib.parse.urlencode(p)
+    try:
+        with urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "painel-siope-fundeb"}), timeout=90) as f:
+            t = f.read().decode("utf-8", "replace")
+            return f.status, t
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode("utf-8", "replace")[:300]
+    except Exception as e:
+        return "ERRO", str(e)[:200]
+for nome in ["receita", "despesa", "despesas", "indicador", "indicadores", "dados_gerais", "dadosgerais", "recibo", "ente", "", "receitas"]:
+    st, t = get(nome, num_ano=2026, num_periodo=4, cod_municipio="270170")
+    print("==", nome or "(raiz)", st, len(t))
+    print(t[:700].replace("\n", " "))
+st, t = get("receita", num_ano=2026, num_periodo=3, cod_municipio="270170")
+print("== receita b3", st, len(t))
