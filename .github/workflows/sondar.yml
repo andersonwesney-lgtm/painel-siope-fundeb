@@ -1,0 +1,14 @@
+name: Sondar SIOPE (temporário)
+on: workflow_dispatch
+jobs:
+  sondar:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          set -x
+          U=https://www.fnde.gov.br/siope
+          curl -sSL -c c.txt -b c.txt "$U/municipiosTransmitidosPorUF.do" -o p.html; wc -c p.html
+          grep -oiE '<(form|select|input|script)[^>]*>' p.html | head -60
+          grep -oiE '(url|action|ajax|\.do)[^"'"'"' ]{0,120}' p.html | sort -u | head -60
+          for s in $(grep -oiE 'src="[^"]+\.js[^"]*"' p.html | cut -d'"' -f2 | grep -v jquery | head -8); do echo "== $s"; curl -sSL "https://www.fnde.gov.br$s" | grep -oiE '(url|\.do|ajax)[^;]{0,160}' | head -30; done
+          sed -n '/<script/,/<\/script>/p' p.html | grep -v '^\s*$' | head -150
