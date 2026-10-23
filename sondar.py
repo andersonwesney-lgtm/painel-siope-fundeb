@@ -21,7 +21,23 @@ ct, h = get(U, {"tipoDeRecibo": "1", "cod_uf_mun": al})
 mun = opts(h, "municipios"); print("AL municipios:", len(mun), mun[:5])
 cap = [v for v, n in mun if n.strip().startswith("Capela")]
 print("Capela:", cap)
-ct, h = get(U, {"tipoDeRecibo": "1", "cod_uf_mun": al, "municipios": cap[0], "consultar": "Consultar"})
+import time
+i = h.find("historicoMavs=buscar"); print("JS:", h[i-200:i+900])
+h = ""
+for tent, dados in enumerate([{"tipoDeRecibo": "1", "cod_uf_mun": al, "municipios": cap[0], "consultar": "Consultar"},
+                              {"tipoDeRecibo": "1", "cod_uf_mun": al, "municipios": cap[0]}]):
+    for k in range(3):
+        try:
+            ct, h = get(U, dados); print("POST ok", tent, len(h)); break
+        except Exception as e:
+            print("POST falhou", tent, e); time.sleep(5)
+    if h: break
+for ano, per in [(2026, 4), (2026, 3)]:
+    u = f"{U}?historicoMavs=buscar&codUf=27&codMuni={cap[0]}&ano={ano}&periodo={per}&tipoDeHistorico=MUNICIPAL"
+    try:
+        ct2, j = get(u); print("HIST", ano, per, ct2, j[:800])
+    except Exception as e:
+        print("HIST falhou", ano, per, e)
 print("captcha?", "recaptcha" in h.lower())
 tab = re.findall(r"<tr[^>]*>(.*?)</tr>", h, re.S | re.I)
 for t in tab:
