@@ -548,11 +548,11 @@ function montarPDF(rows, unico, det) {
   const M = 14, W = 210 - 2 * M;
   let y = 16;
   const cor = { critico: [163, 38, 42], atencao: [138, 90, 0], ok: [31, 111, 67], neutro: [77, 89, 97] };
-  const titulo = (t) => { y = (doc.lastAutoTable && doc.lastAutoTable.finalY > y ? doc.lastAutoTable.finalY : y) + 7; if (y > 270) { doc.addPage(); y = 18; } doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.setTextColor(29, 85, 102); doc.text(t, M, y); y += 2; doc.setTextColor(27, 35, 40); };
-  const paragrafo = (t, tam = 8.5, cinza = false) => { doc.setFont("helvetica", "normal"); doc.setFontSize(tam); doc.setTextColor(...(cinza ? [90, 102, 112] : [27, 35, 40])); const l = doc.splitTextToSize(t, W); if (y + l.length * tam * 0.42 > 282) { doc.addPage(); y = 18; } doc.text(l, M, y + 4); y += l.length * tam * 0.42 + 3; };
+  const titulo = (t) => { y = (doc.lastAutoTable && doc.lastAutoTable.finalY > y ? doc.lastAutoTable.finalY : y) + 7; if (y > 270) { doc.addPage(); y = 18; } doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.setTextColor(99, 45, 145); doc.text(t, M, y); y += 2; doc.setTextColor(27, 35, 40); };
+  const paragrafo = (t, tam = 8.5, cinza = false) => { doc.setFont("helvetica", "normal"); doc.setFontSize(tam); doc.setTextColor(...(cinza ? [92, 82, 105] : [29, 19, 40])); const l = doc.splitTextToSize(t, W); if (y + l.length * tam * 0.42 > 282) { doc.addPage(); y = 18; } doc.text(l, M, y + 4); y += l.length * tam * 0.42 + 3; };
   const tabela = (head, body, opts = {}) => { doc.autoTable({ startY: y + 2, head: [head], body, margin: { left: M, right: M, bottom: 16 }, theme: "grid",
-    styles: { font: "helvetica", fontSize: 7.4, cellPadding: 1.4, lineColor: [217, 222, 226], lineWidth: 0.15, textColor: [27, 35, 40], overflow: "linebreak" },
-    headStyles: { fillColor: [227, 238, 241], textColor: [90, 102, 112], fontStyle: "bold" }, ...opts }); y = doc.lastAutoTable.finalY; };
+    styles: { font: "helvetica", fontSize: 7.4, cellPadding: 1.4, lineColor: [227, 218, 236], lineWidth: 0.15, textColor: [29, 19, 40], overflow: "linebreak" },
+    headStyles: { fillColor: [243, 238, 248], textColor: [72, 32, 107], fontStyle: "bold" }, ...opts }); y = doc.lastAutoTable.finalY; };
   const corSit = (k) => cor[sit(k).nivel];
   const pintar = (colunas) => ({ didParseCell: (d) => { if (d.section === "body" && colunas.includes(d.column.index) && d.cell.raw && d.cell.raw._sit) { d.cell.styles.textColor = corSit(d.cell.raw._sit); d.cell.styles.fontStyle = "bold"; } } });
   const S_ = (k) => ({ content: sit(k).rotulo, _sit: k });
@@ -635,7 +635,7 @@ function montarPDF(rows, unico, det) {
     if (irr.length) {
       const obr = colunasEntes();
       tabela(["Ente", "UF", "Alertas críticos", ...obr.map((o) => o.curto)], irr.map((r) => [r.e.nome, r.e.uf, r.al.filter((c) => c.startsWith("c:")).map((c) => alertaInfo(c).titulo).join("; "), ...obr.map((o) => ({ content: fv(r.v[o.id], "%"), _sit: r.s[o.id] }))]),
-        { styles: { fontSize: 6.6, cellPadding: 1, font: "helvetica", lineColor: [217, 222, 226], lineWidth: 0.15 }, columnStyles: { 2: { cellWidth: 52 } }, ...pintar(obr.map((_, i) => i + 3)) });
+        { styles: { fontSize: 6.6, cellPadding: 1, font: "helvetica", lineColor: [227, 218, 236], lineWidth: 0.15 }, columnStyles: { 2: { cellWidth: 52 } }, ...pintar(obr.map((_, i) => i + 3)) });
     } else paragrafo("Nenhum ente irregular no recorte.");
     const at = rows.filter((r) => r.sg === "atencao").length;
     if (at) paragrafo(`Entes em atenção no recorte: ${fmtInt.format(at)}. A lista completa está no painel, filtro Situação = Atenção.`, 7.6, true);
@@ -656,7 +656,7 @@ function montarPDF(rows, unico, det) {
 
   const n = doc.getNumberOfPages();
   for (let i = 1; i <= n; i++) {
-    doc.setPage(i); doc.setFont("helvetica", "normal"); doc.setFontSize(6.8); doc.setTextColor(90, 102, 112);
+    doc.setPage(i); doc.setFont("helvetica", "normal"); doc.setFontSize(6.8); doc.setTextColor(92, 82, 105); doc.setFillColor(99, 45, 145); doc.rect(0, 0, 210, 2.2, "F"); doc.setFillColor(252, 216, 4); doc.rect(0, 2.2, 210, 0.8, "F");
     doc.text(`${descreverRecorte().slice(0, 70)} · ${ex.ano} · ${bim.todos ? `todos os bim. (1º ao ${bim.bimestre}º)` : `${bim.bimestre}º bim.`} · dados ${curto(bim.sha256)}`, M, 290);
     doc.text(`Página ${i} de ${n}`, 210 - M, 290, { align: "right" });
   }
