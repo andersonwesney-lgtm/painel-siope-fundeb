@@ -5,7 +5,7 @@ for b in (3, 4):
                                 "$top": "10000", "$filter": "COD_MUNI eq 270170"})
     u = f"{B}/Indicadores_Siope(Ano_Consulta=@Ano_Consulta,Num_Peri=@Num_Peri,Sig_UF=@Sig_UF)?{q}"
     with urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "painel-siope-fundeb"}), timeout=180) as f:
-        v = json.load(f)["value"]
+        v = [r for r in json.load(f)["value"] if str(r.get("COD_MUNI"))[:6] == "270170"]
     print(f"B{b} linhas={len(v)}")
     for r in v:
         print(" ", r.get("COD_EXIB"), "|", (r.get("NOM_INDI") or "")[:90], "|", r.get("VAL_INDI"))
