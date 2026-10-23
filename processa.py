@@ -14,7 +14,7 @@ import json
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from . import coleta, recibos
+from . import coleta, indicadores_tc, recibos
 from .config import Config
 from .territorio import SIGLAS, SIGLA_PARA_COD, UFS, id_estado, uf_do_municipio
 
@@ -98,7 +98,7 @@ def _id_ente(tipo: str, muni, uf: str) -> str | None:
     return str(int(muni)).zfill(6)
 
 
-def carregar_periodo(cfg: Config, ano: int, b: int) -> dict:
+def carregar_periodo(cfg: Config, ano: int, b: int, com_tc: bool = True) -> dict:
     """Indicadores e declarações de um bimestre, para todas as UFs coletadas."""
     ind, dg, nomes, ufs_ind, ufs_dg, coletas = {}, {}, {}, set(), set(), []
     for uf in SIGLAS:
@@ -138,8 +138,23 @@ def carregar_periodo(cfg: Config, ano: int, b: int) -> dict:
             dg[i] = {"data": r["transmitido_em"][:10], "reti": r["retificadora"], "recibo": r["recibo"],
                      "pop": (atual or {}).get("pop"), "nome": (atual or {}).get("nome"),
                      "uf": (atual or {}).get("uf") or uf, "fonte": "recibo"}
+    # Indicadores do webservice do SIOPE para os Tribunais de Contas: mais atuais que a base aberta.
+    # Valem por cima dela para o ente/período lido (o SIOPE é a origem da base aberta).
+    n_tc = 0
+    if com_tc and cfg.indicadores_tc.get("ativo", True):
+        for i, r in indicadores_tc.por_periodo(indicadores_tc.carregar(cfg), ano, b).items():
+            if not r["ind"]:
+                continue
+            uf = i[3:] if i.startswith("UF-") else (dg.get(i) or {}).get("uf") or (ind.get(i) or {}).get("_uf")
+            if uf is None:
+                continue
+            atual = ind.setdefault(i, {"_nome": (dg.get(i) or {}).get("nome"), "_uf": uf})
+            atual.update(r["ind"])
+            atual["_fonte"] = "tc"
+            ufs_ind.add(uf)
+            n_tc += 1
     return {"ind": ind, "dg": dg, "nomes": nomes, "ufs_ind": ufs_ind, "ufs_dg": ufs_dg,
-            "ultima_coleta": max(coletas) if coletas else None, "n_recibos": n_recibos}
+            "ultima_coleta": max(coletas) if coletas else None, "n_recibos": n_recibos, "n_tc": n_tc}
 
 
 def catalogo_entes(cfg: Config, periodos: list[dict]) -> dict:
@@ -485,7 +500,7 @@ def processar(cfg: Config, saida: Path, hoje: date, log=print, demo: str | None 
                          "arquivo": f"dados/{ano}/b{b}.json", "sha256": h, "ufs": hashes_uf,
                          "ufs_com_dados": sorted(p["ufs_ind"]), "contagem": contagem,
                          "entes_com_indicadores": com_indicadores, "cobertura": round(com_indicadores / len(ids), 4),
-                         "ultima_coleta": p["ultima_coleta"], "via_recibo": p.get("n_recibos", 0)})
+                         "ultima_coleta": p["ultima_coleta"], "via_recibo": p.get("n_recibos", 0), "via_tc": p.get("n_tc", 0)})
             log(f"  {ano} {b}º bim.: {len(linhas)} entes · irregulares {contagem['irregular']} · "
                 f"atenção {contagem['atencao']} · regulares {contagem['regular']} · sem dados {contagem['sem_info']}")
         todos = _consolidar(dados, ano, hoje, prazos, bims, linhas_b, colunas, obrig, log) if len(bims) > 1 else None

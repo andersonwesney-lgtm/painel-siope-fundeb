@@ -4,6 +4,7 @@
   python -m siope_brasil gerar        processa, monta site/ (painel + dados) e os PDFs em lote
   python -m siope_brasil tudo         coletar + gerar
   python -m siope_brasil recibos      consulta só os Recibos de Transmissão que faltam (sem captcha)
+  python -m siope_brasil indicadores-tc  consulta os indicadores que faltam na base aberta (webservice TC)
   python -m siope_brasil diario       rotina diária: API + recibos + site + validação + registro
                                       (código de saída 1 = não publicar; usado no GitHub Actions)
   python -m siope_brasil pdf --uf MG  um PDF em lote sob demanda (Brasil, UF), a partir de site/
@@ -17,7 +18,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import coleta, config, pdf_lote, processa, recibos, rotina
+from . import coleta, config, indicadores_tc, pdf_lote, processa, recibos, rotina
 from .territorio import SIGLAS
 
 
@@ -46,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--saida", default="site")
     g.add_argument("--sem-pdf", action="store_true", help="não gera os PDFs em lote")
     sub.add_parser("recibos")
+    sub.add_parser("indicadores-tc")
     d = sub.add_parser("diario")
     d.add_argument("--saida", default="site")
     d.add_argument("--sem-pdf", action="store_true")
@@ -69,6 +71,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if a.cmd == "recibos":
         r = recibos.atualizar(cfg, hoje)
+        return 1 if r["status"] == "falha" else 0
+    if a.cmd == "indicadores-tc":
+        r = indicadores_tc.atualizar(cfg, hoje)
         return 1 if r["status"] == "falha" else 0
     if a.cmd == "diario":
         return rotina.executar(cfg, saida, hoje,

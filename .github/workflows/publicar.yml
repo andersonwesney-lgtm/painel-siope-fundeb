@@ -43,7 +43,7 @@ jobs:
         run: |
           mover() { d="$1"; shift; mkdir -p "$d"; for f in "$@"; do if [ -f "$f" ]; then mv "$f" "$d/"; fi; done; }
           mover config obrigacoes.yaml painel.yaml prazos.yaml
-          mover siope_brasil __init__.py __main__.py cli.py coleta.py config.py pdf_lote.py processa.py territorio.py recibos.py rotina.py
+          mover siope_brasil __init__.py __main__.py cli.py coleta.py config.py pdf_lote.py processa.py territorio.py recibos.py indicadores_tc.py rotina.py
           mover tests sintetico.py test_brasil.py test_recibos.py
           mover web app.js estilo.css index.html
       - uses: actions/setup-python@v5

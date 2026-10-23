@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from siope_brasil import coleta, config, processa, recibos, rotina
+from siope_brasil import coleta, config, indicadores_tc, processa, recibos, rotina
 
 RAIZ = Path(__file__).resolve().parent.parent
 HOJE = date(2026, 10, 23)
@@ -163,3 +163,84 @@ def test_rotina_nao_publica_site_suspeito(projeto, monkeypatch):
     assert pub["entes_com_indicadores"]
     (cfg.dir_estado / "ultima_publicacao.json").write_text(json.dumps(pub), encoding="utf-8")
     assert rotina.executar(cfg, saida, HOJE, construir, log=lambda *_: None) == 1
+
+
+# ------------------------------------------------ indicadores (webservice TC) ----
+
+def resposta_tc(ente="270170", ano=2026, b=4, ind=(("1.1", "26.5"), ("1.2", "58.46"))):
+    return {"dat_consulta": "2026-10-23 18:04:52",
+            "ente": [{"sgl_uf": "AL", "cod_municipio": ente, "num_ano": str(ano), "num_periodo": str(b),
+                      "indicador": [{"cod_indicador": c, "vlr_indicador": v} for c, v in ind]}]}
+
+
+def test_le_resposta_do_webservice_tc():
+    assert indicadores_tc.ler_resposta(resposta_tc(), "270170", 2026, 4) == {"1.1": 26.5, "1.2": 58.46}
+    assert indicadores_tc.ler_resposta({"dat_consulta": "x", "ente": []}, "270170", 2026, 4) == {}
+
+
+@pytest.mark.parametrize("dados", [
+    "<html>erro</html>",
+    {"ente": "x"},
+    resposta_tc(ente="270020"),                     # outro município
+    resposta_tc(b=3),                               # outro período
+    resposta_tc(ind=(("1.1", "abc"),)),             # valor não numérico
+    resposta_tc(ind=(("Remuneração", "58"),)),      # código fora do padrão
+])
+def test_resposta_tc_estranha_e_recusada(dados):
+    with pytest.raises(indicadores_tc.FonteMudou):
+        indicadores_tc.ler_resposta(dados, "270170", 2026, 4)
+
+
+class TcFalso:
+    def __init__(self, respostas):
+        self.respostas, self.chamadas = respostas, []
+
+    def consultar(self, ente, ano, b):
+        self.chamadas.append((ente, ano, b))
+        return self.respostas.get(ente, {"ente": []})
+
+
+def test_capela_ganha_indicadores_sem_duplicar(projeto, monkeypatch):
+    cfg = projeto
+    cfg.recibos.update(pausa_entre_consultas_s=0, incluir_estados=False)
+    monkeypatch.setattr(recibos, "Cliente", lambda *a, **k: ClienteFalso({"270170": PAGINA}))
+    recibos.atualizar(cfg, HOJE, log=lambda *_: None)  # Capela passa a constar como transmitida
+
+    falso = TcFalso({"270170": resposta_tc()})
+    monkeypatch.setattr(indicadores_tc, "Cliente", lambda *a, **k: falso)
+    cfg.indicadores_tc.update(pausa_entre_consultas_s=0, incluir_estados=False)
+    # transmitiram e estão incompletos na base aberta (só 1 indicador cada): Anadia e Capela
+    assert [a[0] for a in indicadores_tc.alvos(cfg, HOJE, indicadores_tc.carregar(cfg))] == ["270020", "270170"]
+
+    r1 = indicadores_tc.atualizar(cfg, HOJE, log=lambda *_: None)
+    assert (r1["consultados"], r1["com_dados"], r1["novos"], r1["status"]) == (2, 1, 1, "ok")
+    conteudo = indicadores_tc.arquivo(cfg).read_text(encoding="utf-8")
+    r2 = indicadores_tc.atualizar(cfg, HOJE, log=lambda *_: None)  # mesmo dia: nada de novo
+    assert r2["alvos"] == 0 and indicadores_tc.arquivo(cfg).read_text(encoding="utf-8") == conteudo
+    # dia seguinte: Capela já tem os indicadores; só Anadia (ainda sem dados no SIOPE) é consultada
+    assert [a[0] for a in indicadores_tc.alvos(cfg, date(2026, 10, 24), indicadores_tc.carregar(cfg))] == ["270020"]
+
+    m = processa.processar(cfg, cfg.raiz / "site", HOJE, log=lambda *_: None)
+    dados = json.loads((cfg.raiz / "site" / "dados" / "2026" / "b4.json").read_text(encoding="utf-8"))
+    ix = {c: k for k, c in enumerate(dados["colunas"])}
+    capela = next(l for l in dados["linhas"] if l[ix["id"]] == "270170")
+    assert capela[ix["v.mde_25"]] == 26.5 and capela[ix["v.remuneracao_70"]] == 58.46
+    assert m["exercicios"][0]["bimestres"][-1]["via_tc"] == 1
+
+
+def test_webservice_tc_mudou_mantem_o_que_havia(projeto, monkeypatch):
+    cfg = projeto
+    cfg.recibos["ativo"] = False
+    cfg.indicadores_tc.update(pausa_entre_consultas_s=0, incluir_estados=False, parar_apos_falhas_seguidas=1)
+    monkeypatch.setattr(indicadores_tc, "Cliente", lambda *a, **k: TcFalso({"270020": resposta_tc("270020")}))
+    indicadores_tc.atualizar(cfg, HOJE, log=lambda *_: None)
+    assert "270020|2026|4" in indicadores_tc.carregar(cfg)["registros"]
+
+    estado = indicadores_tc.carregar(cfg)
+    estado["consultados"] = {}
+    estado["registros"]["270020|2026|4"]["visto_em"] = "2026-09-01T00:00:00+00:00"  # transmissão posterior
+    indicadores_tc.gravar(cfg, estado)
+    monkeypatch.setattr(indicadores_tc, "Cliente", lambda *a, **k: TcFalso({"270020": "<html>fora do ar</html>"}))
+    r = indicadores_tc.atualizar(cfg, date(2026, 10, 24), log=lambda *_: None)
+    assert r["status"] == "falha"
+    assert indicadores_tc.carregar(cfg)["registros"]["270020|2026|4"]["ind"] == {"1.1": 26.5, "1.2": 58.46}

@@ -42,6 +42,19 @@ recibos:
   parar_apos_falhas_seguidas: 8    # página fora do ar ou mudou: para e mantém o que já havia
   taxa_maxima_erros: 0.3
 
+# Indicadores pelo webservice do SIOPE para os Tribunais de Contas (público, sem captcha).
+# Para quem já transmitiu e ainda está incompleto na base aberta, nos mesmos períodos dos recibos.
+indicadores_tc:
+  ativo: true
+  minimo_indicadores: 30           # menos que isso na base aberta = incompleto (completo tem ~47)
+  incluir_estados: true
+  consultas_simultaneas: 2
+  pausa_entre_consultas_s: 0.5
+  max_consultas_por_execucao: 6000
+  tempo_maximo_min: 90
+  parar_apos_falhas_seguidas: 8
+  taxa_maxima_erros: 0.3
+
 # Validações antes de publicar. Se alguma falhar, o painel publicado continua o anterior.
 validacao:
   municipios_minimos: 5500         # IBGE: 5.570 municípios (5.569 + Brasília, que declara como DF)

@@ -12,7 +12,7 @@ import traceback
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from . import coleta, recibos
+from . import coleta, indicadores_tc, recibos
 from .config import Config
 
 MAX_REGISTRO = 400  # execuções guardadas no histórico
@@ -96,6 +96,13 @@ def executar(cfg: Config, saida: Path, hoje: date, construir, log=print) -> int:
                 reg["avisos"].append(f"Recibos do SIOPE: {rr['mensagem']}. Mantidos os recibos já guardados.")
             elif rr["status"] == "parcial":  # esperado nos primeiros dias de um bimestre: só registra
                 log(f"  recibos: {rr['consultados']} de {rr['alvos']} consultados; o restante fica para amanhã")
+
+        if cfg.indicadores_tc.get("ativo", True):
+            log("[2b] Indicadores pelo webservice do SIOPE para os Tribunais de Contas (sem captcha)")
+            ri = indicadores_tc.atualizar(cfg, hoje, log)
+            reg["etapas"]["indicadores_tc"] = ri
+            if ri["status"] == "falha":
+                reg["avisos"].append(f"Indicadores (webservice TC): {ri['mensagem']}. Mantidos os já guardados.")
 
         log("[3/4] Processamento e montagem do site")
         construir(saida)

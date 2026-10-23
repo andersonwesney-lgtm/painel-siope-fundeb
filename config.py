@@ -24,6 +24,7 @@ class Config:
     documentais: list[dict]
     prazos: dict
     recibos: dict
+    indicadores_tc: dict
     validacao: dict
 
     def exercicios(self, hoje: date) -> list[int]:
@@ -69,5 +70,6 @@ def carregar(raiz: Path | None = None) -> Config:
         documentais=o.get("obrigacoes_documentais", []),
         prazos=_ler(raiz / "config" / "prazos.yaml"),
         recibos=p.get("recibos", {}),
+        indicadores_tc=p.get("indicadores_tc", {}),
         validacao=p.get("validacao", {}),
     )

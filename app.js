@@ -517,7 +517,8 @@ function renderDocs() {
 function renderRodape() {
   const { bim } = S.periodo, fl = S.cat.fontes_legais;
   const vr = bim.via_recibo ? ` ${fmtInt.format(bim.via_recibo)} transmissão(ões) deste bimestre ainda ausentes da base aberta foram confirmadas na página pública "Recibos de Transmissão" do SIOPE.` : "";
-  $("rodape").innerHTML = `<span>Fonte: dados abertos do SIOPE/FNDE (API Olinda), Recibos de Transmissão do SIOPE e lista de municípios do IBGE.${vr} Situações calculadas por siope_brasil/processa.py; este painel só filtra e conta.</span>
+  const vt = bim.via_tc ? ` Os indicadores de ${fmtInt.format(bim.via_tc)} ente(s) ainda incompletos na base aberta vieram do webservice do SIOPE para os Tribunais de Contas.` : "";
+  $("rodape").innerHTML = `<span>Fonte: dados abertos do SIOPE/FNDE (API Olinda), webservice do SIOPE para os Tribunais de Contas, Recibos de Transmissão do SIOPE e lista de municípios do IBGE.${vr}${vt} Situações calculadas por siope_brasil/processa.py; este painel só filtra e conta.</span>
     <span>Normas: <a href="${esc(fl.lei_14113)}" target="_blank" rel="noopener">Lei 14.113/2020</a> · <a href="${esc(fl.cf)}" target="_blank" rel="noopener">Constituição Federal</a>.</span>
     <span>Identificador dos dados deste bimestre (SHA-256 de ${esc(bim.arquivo)}): <span class="mono" style="word-break:break-all">${bim.sha256}</span>. Os PDFs deste recorte trazem o mesmo identificador.</span>
     <span>Gerado em ${esc(S.manifest.gerado_em)}.</span>`;

@@ -7,15 +7,25 @@
    página pública e **sem captcha**. A rotina consulta só os entes que ainda faltam na base aberta,
    a partir do 4º bimestre de 2026 e em todos os períodos seguintes, e grava recibo, data de
    transmissão e retificação.
-3. **Processamento e montagem do site**: quem só aparece nos recibos passa a contar como transmitido,
+3. **Indicadores pelo webservice do SIOPE para os Tribunais de Contas**
+   (`https://www.fnde.gov.br/webservices/siope/tc/indicador`), público, em JSON e **sem captcha**. Para
+   quem já transmitiu e tem menos de 30 indicadores na base aberta, nos mesmos períodos dos recibos, a
+   rotina busca os indicadores e os usa por cima da base aberta. Em 23/10/2026, Capela (AL) tinha 2
+   indicadores do 4º bim. na base aberta; o webservice trazia todos (ex.: 1.2 = 58,46%).
+4. **Processamento e montagem do site**: quem só aparece nos recibos passa a contar como transmitido,
    com a data real. Por exemplo, Capela (AL), 4º bim. 2026, transmitido em 08/10/2026.
-4. **Validação**:
+5. **Validação**:
    - o catálogo precisa ter pelo menos 5.500 municípios;
    - todos os arquivos dos bimestres precisam existir;
    - nenhum bimestre pode perder mais de 20% dos entes com indicadores em relação à última publicação.
-5. **Publicação** no GitHub Pages, só se tudo acima passou.
+6. **Publicação** no GitHub Pages, só se tudo acima passou.
 
-## Por que não o relatório "Municípios transmitidos por UF"
+## Por que não o "Relatório de Indicadores" nem o "Municípios transmitidos por UF"
+
+Os dois têm reCAPTCHA e não são coletados. O webservice `/tc/indicador` foi achado a partir do projeto
+público github.com/danielanza/SIOPE-Extracao-de-Dados, que usa o recurso irmão `/tc/receita`.
+
+## Recibos de Transmissão
 
 Esse relatório tem reCAPTCHA (Google) e não é coletado. A página "Recibos de Transmissão" é do mesmo
 SIOPE e traz, para cada município e período, o que o relatório mostra: se transmitiu, o nº do recibo,
