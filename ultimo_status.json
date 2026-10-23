@@ -1,0 +1,46 @@
+{
+ "inicio": "2026-10-23T15:20:27+00:00",
+ "data_referencia": "2026-10-23",
+ "etapas": {
+  "api": {
+   "gravadas": 540,
+   "reaproveitadas": 0,
+   "falhas": 1,
+   "exemplos_falha": [
+    "IBGE: HTTPSConnectionPool(host='servicodados.ibge.gov.br', port=443): Max retries exceeded with url: /api/v1/localidades/municipios?view=nivelado (Caused by ConnectTimeoutError(<HTTPSConnection(host='servicodados.ibge.gov.br', port=443) at 0x7faf2034e2d0>, 'Connection to servicodados.ibge.gov.br timed out. (connect timeout=180)'))"
+   ]
+  },
+  "recibos": {
+   "alvos": 4328,
+   "consultados": 2569,
+   "novos": 166979,
+   "atualizados": 0,
+   "erros": 16,
+   "periodos": [
+    "2026-b4"
+   ],
+   "status": "parcial",
+   "mensagem": "limite de tempo/consultas; continua na próxima execução"
+  },
+  "site": {
+   "entes_com_dados": {
+    "2025-b1": 5597,
+    "2025-b2": 5597,
+    "2025-b3": 5597,
+    "2025-b4": 5597,
+    "2025-b5": 5597,
+    "2025-b6": 5597,
+    "2026-b1": 5597,
+    "2026-b2": 5597,
+    "2026-b3": 5597,
+    "2026-b4": 5597
+   },
+   "gerado_em": "2026-10-23T18:28:48+00:00"
+  }
+ },
+ "avisos": [
+  "API do SIOPE: 1 de 541 consulta(s) falharam; usados os dados guardados"
+ ],
+ "status": "aviso",
+ "fim": "2026-10-23T18:28:55+00:00"
+}
