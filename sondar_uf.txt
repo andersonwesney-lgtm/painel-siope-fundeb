@@ -1,0 +1,15 @@
+import urllib.request, urllib.parse
+B = "https://www.fnde.gov.br/webservices/siope/tc/"
+for nome, p in [("indicador", {"num_ano": 2026, "num_periodo": 4, "sgl_uf": "AL"}),
+                ("indicador", {"num_ano": 2026, "num_periodo": 4, "sgl_uf": "AL", "cod_municipio": ""}),
+                ("indicador", {"num_ano": 2026, "num_periodo": 3, "sgl_uf": "AL"}),
+                ("indicador", {"num_ano": 2025, "num_periodo": 6, "sgl_uf": "AL"}),
+                ("receita", {"num_ano": 2026, "num_periodo": 4, "sgl_uf": "AL"}),
+                ("indicador", {"num_ano": 2026, "num_periodo": 4, "cod_uf": "27"}),
+                ("indicador", {"num_ano": 2026, "num_periodo": 4, "sgl_uf": "AL", "tipo": "E"})]:
+    u = B + nome + "?" + urllib.parse.urlencode(p)
+    try:
+        with urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "painel-siope-fundeb"}), timeout=90) as f:
+            t = f.read().decode("utf-8", "replace"); print("==", nome, p, f.status, len(t)); print(t[:400])
+    except urllib.error.HTTPError as e:
+        print("==", nome, p, e.code, e.read().decode("utf-8", "replace")[:400].replace("\n", " "))
