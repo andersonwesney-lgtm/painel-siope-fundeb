@@ -1,59 +1,62 @@
 {
- "inicio": "2026-10-23T22:29:43+00:00",
- "data_referencia": "2026-10-23",
+ "inicio": "2026-11-03T12:23:47+00:00",
+ "data_referencia": "2026-11-03",
  "etapas": {
   "api": {
-   "gravadas": 540,
+   "gravadas": 594,
    "reaproveitadas": 0,
    "falhas": 1,
    "exemplos_falha": [
-    "IBGE: HTTPSConnectionPool(host='servicodados.ibge.gov.br', port=443): Max retries exceeded with url: /api/v1/localidades/municipios?view=nivelado (Caused by ConnectTimeoutError(<HTTPSConnection(host='servicodados.ibge.gov.br', port=443) at 0x7f682764e8d0>, 'Connection to servicodados.ibge.gov.br timed out. (connect timeout=180)'))"
+    "IBGE: HTTPSConnectionPool(host='servicodados.ibge.gov.br', port=443): Max retries exceeded with url: /api/v1/localidades/municipios?view=nivelado (Caused by ConnectTimeoutError(<HTTPSConnection(host='servicodados.ibge.gov.br', port=443) at 0x7620b0336b10>, 'Connection to servicodados.ibge.gov.br timed out. (connect timeout=180)'))"
    ]
   },
   "recibos": {
-   "alvos": 2,
-   "consultados": 2,
-   "novos": 0,
-   "atualizados": 0,
-   "erros": 2,
+   "alvos": 4868,
+   "consultados": 3000,
+   "novos": 5532,
+   "atualizados": 167,
+   "erros": 0,
    "periodos": [
-    "2026-b4"
+    "2026-b4",
+    "2026-b5"
    ],
    "status": "ok",
    "mensagem": ""
   },
   "indicadores_tc": {
-   "alvos": 0,
-   "consultados": 0,
-   "com_dados": 0,
-   "novos": 0,
+   "alvos": 5,
+   "consultados": 5,
+   "com_dados": 5,
+   "novos": 5,
    "atualizados": 0,
    "erros": 0,
    "periodos": [
-    "2026-b4"
+    "2026-b4",
+    "2026-b5"
    ],
    "status": "ok",
    "mensagem": ""
   },
   "site": {
    "entes_com_indicadores": {
-    "2025-b1": 5589,
-    "2025-b2": 5588,
-    "2025-b3": 5588,
-    "2025-b4": 5588,
-    "2025-b5": 5587,
+    "2025-b1": 5590,
+    "2025-b2": 5590,
+    "2025-b3": 5590,
+    "2025-b4": 5590,
+    "2025-b5": 5589,
     "2025-b6": 5586,
-    "2026-b1": 5475,
-    "2026-b2": 5412,
-    "2026-b3": 5233,
-    "2026-b4": 4733
+    "2026-b1": 5495,
+    "2026-b2": 5452,
+    "2026-b3": 5329,
+    "2026-b4": 4866,
+    "2026-b5": 2702
    },
-   "gerado_em": "2026-10-23T23:14:46+00:00"
+   "gerado_em": "2026-11-03T14:18:06+00:00"
   }
  },
  "avisos": [
-  "API do SIOPE: 1 de 541 consulta(s) falharam; usados os dados guardados"
+  "API do SIOPE: 1 de 595 consulta(s) falharam; usados os dados guardados"
  ],
  "status": "aviso",
- "fim": "2026-10-23T23:14:53+00:00"
+ "fim": "2026-11-03T14:18:13+00:00"
 }
