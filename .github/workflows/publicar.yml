@@ -88,6 +88,7 @@ jobs:
       - name: Guardar estado e registro da execução
         if: always()
         run: |
+          [ -d estado ] || { echo "estado não foi recuperado (erro antes da rotina)"; exit 0; }
           cd estado
           git config user.name "painel-siope-bot"
           git config user.email "painel-siope-bot@users.noreply.github.com"

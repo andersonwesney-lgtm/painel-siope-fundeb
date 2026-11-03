@@ -258,7 +258,7 @@ def atualizar(cfg: Config, hoje: date, log=print) -> dict:
                         resumo["status"], resumo["mensagem"] = "falha", erro
                     continue
                 falhas_seguidas[0] = 0
-                estado["consultados"][i] = agora
+                estado["consultados"][i] = hoje.isoformat()  # data de referência da execução
                 for r in recs:
                     if r["ano"] not in anos:
                         continue

@@ -229,7 +229,7 @@ def atualizar(cfg: Config, hoje: date, log=print) -> dict:
                     continue
                 falhas_seguidas[0] = 0
                 k = f"{i}|{a}|{b}"
-                estado["consultados"][k] = agora
+                estado["consultados"][k] = hoje.isoformat()  # data de referência da execução
                 if not ind:
                     continue  # o SIOPE ainda não tem este período para o ente
                 resumo["com_dados"] += 1
