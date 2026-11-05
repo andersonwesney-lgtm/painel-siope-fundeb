@@ -168,7 +168,10 @@ def coletar(cfg: Config, anos: list[int], hoje: date, ufs: list[str] | None = No
             coletar_ibge(cfg, sessao)
             log("  lista de municípios do IBGE atualizada")
         except ErroColeta as exc:
-            resumo["falhas"].append(f"IBGE: {exc}")
+            if (cfg.dir_brutos / "ibge_municipios.json.gz").exists():  # lista quase não muda: usa a guardada
+                log(f"  IBGE fora do ar; usada a lista de municípios guardada ({exc})")
+            else:
+                resumo["falhas"].append(f"IBGE: {exc}")
     return resumo
 
 
