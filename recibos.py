@@ -204,6 +204,9 @@ def alvos(cfg: Config, hoje: date, estado: dict) -> list[tuple[str, str, str]]:
                     for a, b in pers)
         if falta and (cfg.recibos.get("incluir_estados", True) or not i.startswith("UF-")):
             saida.append((i, e["uf"], str(SIGLA_PARA_COD[e["uf"]])))
+    # Quem foi consultado há mais tempo (ou nunca) vai primeiro: com o limite diário de consultas,
+    # a fila gira e todos os entes são revistos, em vez de sempre os mesmos primeiros códigos.
+    saida.sort(key=lambda a: (estado["consultados"].get(a[0], ""), a[0]))
     return saida
 
 

@@ -275,3 +275,14 @@ def test_webservice_tc_mudou_mantem_o_que_havia(projeto, monkeypatch):
     r = indicadores_tc.atualizar(cfg, date(2026, 10, 24), log=lambda *_: None)
     assert r["status"] == "falha"
     assert indicadores_tc.carregar(cfg)["registros"]["270020|2026|4"]["ind"] == {"1.1": 26.5, "1.2": 58.46}
+
+
+def test_fila_de_recibos_gira_com_o_limite_diario(projeto):
+    cfg = projeto
+    cfg.recibos["incluir_estados"] = False
+    estado = recibos.carregar(cfg)
+    for b in (1, 2, 3, 4):  # os dois municípios somem da base aberta: ambos viram alvo
+        coleta.gravar_json_gz(coleta.caminho(cfg, 2026, b, "AL", "dados_gerais"),
+                              {"coletado_em": "2026-10-23T00:00:00+00:00", "linhas": [], "nomes": {}})
+    estado["consultados"] = {"270020": "2026-10-20"}  # Anadia consultada antes; Capela nunca
+    assert [a[0] for a in recibos.alvos(cfg, HOJE, estado)] == ["270170", "270020"]
