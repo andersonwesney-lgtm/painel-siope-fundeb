@@ -168,10 +168,9 @@ def coletar(cfg: Config, anos: list[int], hoje: date, ufs: list[str] | None = No
             coletar_ibge(cfg, sessao)
             log("  lista de municípios do IBGE atualizada")
         except ErroColeta as exc:
-            if (cfg.dir_brutos / "ibge_municipios.json.gz").exists():  # lista quase não muda: usa a guardada
-                log(f"  IBGE fora do ar; usada a lista de municípios guardada ({exc})")
-            else:
-                resumo["falhas"].append(f"IBGE: {exc}")
+            # O IBGE costuma não responder ao GitHub Actions. Não é falha da coleta: o catálogo usa a
+            # lista guardada, se houver, e os entes vistos no SIOPE; a validação exige 5.500 municípios.
+            log(f"  IBGE não respondeu; seguem a lista guardada e os entes do SIOPE ({exc})")
     return resumo
 
 
