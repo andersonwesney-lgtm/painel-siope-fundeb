@@ -1,6 +1,6 @@
 {
- "inicio": "2026-11-05T16:28:18+00:00",
- "data_referencia": "2026-11-05",
+ "inicio": "2026-11-06T09:55:17+00:00",
+ "data_referencia": "2026-11-06",
  "etapas": {
   "api": {
    "gravadas": 594,
@@ -9,10 +9,10 @@
    "exemplos_falha": []
   },
   "recibos": {
-   "alvos": 0,
-   "consultados": 0,
-   "novos": 0,
-   "atualizados": 0,
+   "alvos": 4868,
+   "consultados": 3000,
+   "novos": 9,
+   "atualizados": 2,
    "erros": 0,
    "periodos": [
     "2026-b4",
@@ -49,10 +49,10 @@
     "2026-b4": 4866,
     "2026-b5": 2702
    },
-   "gerado_em": "2026-11-05T17:13:39+00:00"
+   "gerado_em": "2026-11-06T11:47:00+00:00"
   }
  },
  "avisos": [],
  "status": "ok",
- "fim": "2026-11-05T17:13:46+00:00"
+ "fim": "2026-11-06T11:47:05+00:00"
 }
