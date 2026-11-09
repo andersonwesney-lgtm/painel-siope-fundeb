@@ -1,6 +1,6 @@
 {
- "inicio": "2026-11-08T09:40:39+00:00",
- "data_referencia": "2026-11-08",
+ "inicio": "2026-11-09T09:54:00+00:00",
+ "data_referencia": "2026-11-09",
  "etapas": {
   "api": {
    "gravadas": 594,
@@ -11,8 +11,8 @@
   "recibos": {
    "alvos": 4868,
    "consultados": 3000,
-   "novos": 1,
-   "atualizados": 8,
+   "novos": 0,
+   "atualizados": 3,
    "erros": 0,
    "periodos": [
     "2026-b4",
@@ -22,10 +22,10 @@
    "mensagem": ""
   },
   "indicadores_tc": {
-   "alvos": 6,
-   "consultados": 6,
-   "com_dados": 6,
-   "novos": 6,
+   "alvos": 1,
+   "consultados": 1,
+   "com_dados": 1,
+   "novos": 1,
    "atualizados": 0,
    "erros": 0,
    "periodos": [
@@ -49,10 +49,10 @@
     "2026-b4": 4866,
     "2026-b5": 2702
    },
-   "gerado_em": "2026-11-08T11:34:57+00:00"
+   "gerado_em": "2026-11-09T11:45:30+00:00"
   }
  },
  "avisos": [],
  "status": "ok",
- "fim": "2026-11-08T11:35:04+00:00"
+ "fim": "2026-11-09T11:45:37+00:00"
 }
