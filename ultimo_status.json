@@ -1,6 +1,6 @@
 {
- "inicio": "2026-11-10T09:50:22+00:00",
- "data_referencia": "2026-11-10",
+ "inicio": "2026-11-11T09:52:35+00:00",
+ "data_referencia": "2026-11-11",
  "etapas": {
   "api": {
    "gravadas": 594,
@@ -11,8 +11,8 @@
   "recibos": {
    "alvos": 4868,
    "consultados": 3000,
-   "novos": 11,
-   "atualizados": 54,
+   "novos": 17,
+   "atualizados": 19,
    "erros": 0,
    "periodos": [
     "2026-b4",
@@ -22,10 +22,10 @@
    "mensagem": ""
   },
   "indicadores_tc": {
-   "alvos": 26,
-   "consultados": 26,
-   "com_dados": 26,
-   "novos": 26,
+   "alvos": 13,
+   "consultados": 13,
+   "com_dados": 13,
+   "novos": 13,
    "atualizados": 0,
    "erros": 0,
    "periodos": [
@@ -41,18 +41,18 @@
     "2025-b2": 5590,
     "2025-b3": 5590,
     "2025-b4": 5590,
-    "2025-b5": 5231,
-    "2025-b6": 5248,
-    "2026-b1": 5466,
+    "2025-b5": 5589,
+    "2025-b6": 5586,
+    "2026-b1": 5495,
     "2026-b2": 5452,
     "2026-b3": 5329,
     "2026-b4": 4866,
     "2026-b5": 2702
    },
-   "gerado_em": "2026-11-10T11:35:31+00:00"
+   "gerado_em": "2026-11-11T11:45:25+00:00"
   }
  },
  "avisos": [],
  "status": "ok",
- "fim": "2026-11-10T11:35:36+00:00"
+ "fim": "2026-11-11T11:45:33+00:00"
 }
